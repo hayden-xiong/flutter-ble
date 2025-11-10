@@ -118,48 +118,32 @@ class MyHomePageState extends State<MyHomePage> {
   _requestPermissionsAndInit() async {
     try {
       setState(() {
-        _statusMessage = '正在请求权限...';
+        _statusMessage = '正在初始化蓝牙...';
       });
 
-      // 请求蓝牙权限
-      var bluetoothStatus = await Permission.bluetooth.status;
-      if (!bluetoothStatus.isGranted) {
-        bluetoothStatus = await Permission.bluetooth.request();
-      }
-
-      // 请求位置权限（iOS 扫描蓝牙需要）
-      var locationStatus = await Permission.location.status;
-      print('位置权限状态: $locationStatus');
+      print('开始初始化蓝牙，直接尝试扫描会触发权限请求');
       
-      if (locationStatus.isDenied) {
-        locationStatus = await Permission.location.request();
-        print('请求后位置权限状态: $locationStatus');
-      }
-
-      if (locationStatus.isPermanentlyDenied) {
+      // 直接尝试初始化蓝牙
+      // iOS 会在需要时自动弹出权限请求
+      await _initBluetooth();
+      
+    } catch (e, stackTrace) {
+      print('初始化错误: $e');
+      print('堆栈: $stackTrace');
+      
+      // 检查是否是权限问题
+      String errorMsg = e.toString().toLowerCase();
+      if (errorMsg.contains('permission') || errorMsg.contains('unauthorized')) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '位置权限被永久拒绝，请在设置中手动开启';
+          _errorMessage = '需要蓝牙和位置权限。\n\n请在 iPhone 设置中：\n1. 打开"设置"\n2. 找到"Flutter Ble"\n3. 开启"位置"权限';
         });
-        await openAppSettings();
-        return;
-      }
-
-      if (locationStatus.isGranted || locationStatus.isLimited) {
-        await _initBluetooth();
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = '需要位置权限才能扫描蓝牙设备';
+          _errorMessage = '初始化失败: ${e.toString()}';
         });
       }
-    } catch (e, stackTrace) {
-      print('权限请求错误: $e');
-      print('堆栈: $stackTrace');
-      setState(() {
-        _isLoading = false;
-        _errorMessage = '权限请求失败: ${e.toString()}';
-      });
     }
   }
 
