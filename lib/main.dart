@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() => runApp(const MyApp());
 
@@ -37,8 +39,31 @@ class _DeviceListPageState extends State<DeviceListPage> {
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, () {
-      _startScan();
+      _checkPermissionsAndScan();
     });
+  }
+
+  Future<void> _checkPermissionsAndScan() async {
+    if (Platform.isAndroid) {
+      // Android 需要请求权限
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.location,
+      ].request();
+
+      bool allGranted = statuses.values.every((status) => status.isGranted);
+      
+      if (!allGranted) {
+        setState(() {
+          _errorMessage = '需要蓝牙和位置权限才能扫描设备\n\n请在设置中授予权限';
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+    
+    await _startScan();
   }
 
   void _addDevice(BluetoothDevice device) {
