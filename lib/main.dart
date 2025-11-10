@@ -112,7 +112,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('PLAUD 设备'),
+        title: const Text('FlutterDemo-设备列表'),
         elevation: 0,
         actions: [
           IconButton(
