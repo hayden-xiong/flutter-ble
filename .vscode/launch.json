@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flutter (Debug - Android)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "deviceId": "android"
+        },
+        {
+            "name": "Flutter (Profile - iOS)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "deviceId": "00008140-000C384614FA801C"
+        },
+        {
+            "name": "Flutter (Release - iOS)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "deviceId": "00008140-000C384614FA801C"
+        },
+        {
+            "name": "Flutter (Profile - Android)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "deviceId": "android"
+        },
+        {
+            "name": "Flutter (Release - Android)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "deviceId": "android"
+        }
+    ]
+}
+
