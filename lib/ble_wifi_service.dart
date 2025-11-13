@@ -240,6 +240,7 @@ class BLEWiFiService {
 
   // 用于拼接分包数据
   String _dataBuffer = '';
+  Timer? _dataTimeoutTimer;
 
   /// 初始化服务（发现特征并启用通知）
   Future<bool> initialize() async {
@@ -499,6 +500,9 @@ class BLEWiFiService {
       // 累加数据到缓冲区
       _dataBuffer += chunk;
       
+      // 取消之前的超时定时器
+      _dataTimeoutTimer?.cancel();
+      
       // 尝试解析 JSON（检查是否完整）
       try {
         final json = jsonDecode(_dataBuffer) as Map<String, dynamic>;
@@ -509,21 +513,72 @@ class BLEWiFiService {
         
         // 清空缓冲区
         _dataBuffer = '';
+        _dataTimeoutTimer = null;
       } catch (e) {
         // JSON 解析失败，说明数据不完整，继续等待下一包
         if (_dataBuffer.length > 10000) {
           // 防止缓冲区无限增长
           debugPrint('[BLE WiFi] 缓冲区过大，清空: ${_dataBuffer.length} 字节');
           _dataBuffer = '';
+          _dataTimeoutTimer = null;
           onError?.call('数据接收异常：缓冲区溢出');
         } else {
           debugPrint('[BLE WiFi] 等待更多数据... (当前: ${_dataBuffer.length} 字节)');
+          debugPrint('[BLE WiFi] 当前数据: ${_dataBuffer.substring(0, _dataBuffer.length > 100 ? 100 : _dataBuffer.length)}...');
+          
+          // 设置 3 秒超时
+          _dataTimeoutTimer = Timer(const Duration(seconds: 3), () {
+            debugPrint('[BLE WiFi] 数据接收超时 (${_dataBuffer.length} 字节)');
+            debugPrint('[BLE WiFi] 不完整的数据: $_dataBuffer');
+            
+            // 尝试修复并解析
+            _tryRecoverData();
+          });
         }
       }
     } catch (e) {
       debugPrint('[BLE WiFi] 数据包处理失败: $e');
       _dataBuffer = '';
+      _dataTimeoutTimer?.cancel();
+      _dataTimeoutTimer = null;
       onError?.call('数据处理失败: $e');
+    }
+  }
+
+  /// 尝试修复不完整的数据
+  void _tryRecoverData() {
+    if (_dataBuffer.isEmpty) {
+      return;
+    }
+
+    debugPrint('[BLE WiFi] 尝试修复数据...');
+    
+    // 尝试补全 JSON（简单修复）
+    String fixedData = _dataBuffer;
+    
+    // 如果缺少结尾的 }
+    int openBraces = fixedData.split('{').length - 1;
+    int closeBraces = fixedData.split('}').length - 1;
+    
+    if (openBraces > closeBraces) {
+      // 补全缺失的 }
+      for (int i = 0; i < (openBraces - closeBraces); i++) {
+        fixedData += '}';
+      }
+      debugPrint('[BLE WiFi] 补全了 ${openBraces - closeBraces} 个右括号');
+    }
+    
+    // 尝试解析修复后的数据
+    try {
+      final json = jsonDecode(fixedData) as Map<String, dynamic>;
+      debugPrint('[BLE WiFi] 数据修复成功！');
+      _handleCompleteData(json);
+      _dataBuffer = '';
+    } catch (e) {
+      debugPrint('[BLE WiFi] 数据修复失败: $e');
+      debugPrint('[BLE WiFi] 原始数据: $_dataBuffer');
+      _dataBuffer = '';
+      onError?.call('数据接收不完整且无法修复');
     }
   }
 
@@ -722,6 +777,8 @@ class BLEWiFiService {
   /// 释放资源
   Future<void> dispose() async {
     debugPrint('[BLE WiFi] 释放资源');
+    _dataTimeoutTimer?.cancel();
+    _dataTimeoutTimer = null;
     await _notifySubscription?.cancel();
     _notifySubscription = null;
     _characteristic = null;
