@@ -238,10 +238,27 @@ class BLEWiFiService {
 
   BLEWiFiService(this.device);
 
+  // 用于拼接分包数据
+  String _dataBuffer = '';
+
   /// 初始化服务（发现特征并启用通知）
   Future<bool> initialize() async {
     try {
       debugPrint('[BLE WiFi] 开始初始化...');
+      
+      // 请求更大的 MTU（最大 512 字节）
+      try {
+        final mtu = await device.mtu.first;
+        debugPrint('[BLE WiFi] 当前 MTU: $mtu');
+        
+        if (mtu < 512) {
+          await device.requestMtu(512);
+          final newMtu = await device.mtu.first;
+          debugPrint('[BLE WiFi] 协商后 MTU: $newMtu');
+        }
+      } catch (e) {
+        debugPrint('[BLE WiFi] MTU 协商失败: $e (继续使用默认值)');
+      }
       
       // 发现服务
       List<BluetoothService> services = await device.discoverServices();
@@ -263,7 +280,7 @@ class BLEWiFiService {
               
               // 监听通知
               _notifySubscription = characteristic.onValueReceived.listen(
-                _handleNotification,
+                _handleNotificationPacket,
                 onError: (error) {
                   debugPrint('[BLE WiFi] 通知错误: $error');
                   onError?.call('通知接收失败: $error');
@@ -474,13 +491,45 @@ class BLEWiFiService {
     await _characteristic!.write(data, withoutResponse: false);
   }
 
-  /// 处理通知数据
-  void _handleNotification(List<int> value) {
+  /// 处理通知数据包（可能分包）
+  void _handleNotificationPacket(List<int> value) {
     try {
-      final jsonString = utf8.decode(value);
-      debugPrint('[BLE WiFi] 收到数据: $jsonString');
+      final chunk = utf8.decode(value);
       
-      final json = jsonDecode(jsonString) as Map<String, dynamic>;
+      // 累加数据到缓冲区
+      _dataBuffer += chunk;
+      
+      // 尝试解析 JSON（检查是否完整）
+      try {
+        final json = jsonDecode(_dataBuffer) as Map<String, dynamic>;
+        
+        // 解析成功，说明数据完整
+        debugPrint('[BLE WiFi] 收到完整数据 (${_dataBuffer.length} 字节)');
+        _handleCompleteData(json);
+        
+        // 清空缓冲区
+        _dataBuffer = '';
+      } catch (e) {
+        // JSON 解析失败，说明数据不完整，继续等待下一包
+        if (_dataBuffer.length > 10000) {
+          // 防止缓冲区无限增长
+          debugPrint('[BLE WiFi] 缓冲区过大，清空: ${_dataBuffer.length} 字节');
+          _dataBuffer = '';
+          onError?.call('数据接收异常：缓冲区溢出');
+        } else {
+          debugPrint('[BLE WiFi] 等待更多数据... (当前: ${_dataBuffer.length} 字节)');
+        }
+      }
+    } catch (e) {
+      debugPrint('[BLE WiFi] 数据包处理失败: $e');
+      _dataBuffer = '';
+      onError?.call('数据处理失败: $e');
+    }
+  }
+
+  /// 处理完整的 JSON 数据
+  void _handleCompleteData(Map<String, dynamic> json) {
+    try {
       final cmd = json['cmd'] as String?;
       final status = json['status'] as String?;
       
@@ -515,8 +564,8 @@ class BLEWiFiService {
           debugPrint('[BLE WiFi] 未知命令: $cmd');
       }
     } catch (e) {
-      debugPrint('[BLE WiFi] 数据解析失败: $e');
-      onError?.call('数据解析失败: $e');
+      debugPrint('[BLE WiFi] 数据处理失败: $e');
+      onError?.call('数据处理失败: $e');
     }
   }
 
@@ -676,6 +725,7 @@ class BLEWiFiService {
     await _notifySubscription?.cancel();
     _notifySubscription = null;
     _characteristic = null;
+    _dataBuffer = ''; // 清空缓冲区
   }
 }
 
