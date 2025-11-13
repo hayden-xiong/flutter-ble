@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'wifi_provisioning_page.dart';
+import 'wifi_management_page.dart';
 
 void main() => runApp(const MyApp());
 
@@ -436,6 +437,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           _buildDeviceInfoCard(),
           const SizedBox(height: 16),
           _buildWiFiConfigCard(),
+          const SizedBox(height: 8),
+          _buildWiFiManagementCard(),
           const SizedBox(height: 16),
           _buildWakeWordCard(),
           const SizedBox(height: 16),
@@ -564,6 +567,43 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     );
   }
 
+  Widget _buildWiFiManagementCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _openWiFiManagement,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(Icons.wifi_tethering, color: Colors.orange[700]),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'WiFi 管理',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '查看和管理已保存的 WiFi',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildWakeWordCard() {
     return Card(
       elevation: 2,
@@ -682,6 +722,23 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       context,
       MaterialPageRoute(
         builder: (context) => WiFiProvisioningPage(device: widget.device),
+      ),
+    );
+  }
+
+  Future<void> _openWiFiManagement() async {
+    if (!_isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('设备未连接')),
+      );
+      return;
+    }
+
+    // 跳转到 WiFi 管理页面
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WiFiManagementPage(device: widget.device),
       ),
     );
   }
