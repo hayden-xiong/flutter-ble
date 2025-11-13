@@ -27,7 +27,6 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
   
   // 当前连接的WiFi信息
   String? _connectedSsid;
-  int? _connectedRssi;
   String? _connectedIp;
 
   @override
@@ -50,7 +49,6 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
         setState(() {
           _wifiList = result.networks;
           _connectedSsid = result.connectedSsid;
-          _connectedRssi = result.connectedRssi;
           _connectedIp = result.connectedIp;
           _isScanning = false;
         });
@@ -192,28 +190,12 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildSignalIcon(network.signalLevel),
-                        const SizedBox(width: 6),
-                        Text(
-                          network.signalDescription,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(Icons.lock, size: 12, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          network.authModeDescription,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '${network.signalDescription} · ${network.authModeDescription}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
@@ -600,115 +582,66 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
     }
 
     // WiFi 列表
-    return Column(
-      children: [
-        // 当前连接的WiFi（如果有）
-        if (_connectedSsid != null) _buildConnectedWiFiBar(),
-        // 顶部提示
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: Colors.blue[50],
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '找到 ${_wifiList.length} 个 WiFi 网络，选择一个进行配置',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.blue[900],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // WiFi 列表
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _startWiFiScan,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _wifiList.length,
-              itemBuilder: (context, index) {
-                return _buildWiFiCard(_wifiList[index]);
-              },
-            ),
-          ),
-        ),
-      ],
+    return RefreshIndicator(
+      onRefresh: _startWiFiScan,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _wifiList.length + (_connectedSsid != null ? 1 : 0),
+        itemBuilder: (context, index) {
+          // 第一项显示已连接的WiFi
+          if (_connectedSsid != null && index == 0) {
+            return _buildConnectedWiFiBar();
+          }
+          
+          // WiFi列表
+          final wifiIndex = _connectedSsid != null ? index - 1 : index;
+          return _buildWiFiCard(_wifiList[wifiIndex]);
+        },
+      ),
     );
   }
 
   Widget _buildConnectedWiFiBar() {
     return Container(
-      width: double.infinity,
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.green[50],
-        border: Border(
-          bottom: BorderSide(color: Colors.green[200]!, width: 1),
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green[200]!, width: 1),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.green[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.wifi, color: Colors.green[700], size: 24),
-          ),
+          Icon(Icons.wifi, color: Colors.green[700], size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      '已连接: ',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green[700],
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        _connectedSsid!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green[900],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                Text(
+                  '已连接: $_connectedSsid',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green[900],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (_connectedIp != null)
                   Text(
                     'IP: $_connectedIp',
                     style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.green[600],
+                      fontSize: 12,
+                      color: Colors.grey[600],
                     ),
                   ),
               ],
             ),
           ),
-          TextButton.icon(
+          TextButton(
             onPressed: _showDisconnectDialog,
-            icon: const Icon(Icons.link_off, size: 16),
-            label: const Text('断开'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red[700],
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
+            child: Text('断开', style: TextStyle(color: Colors.red[700])),
           ),
         ],
       ),
@@ -720,13 +653,8 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: isConnected ? 3 : 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isConnected
-            ? BorderSide(color: Colors.green[300]!, width: 2)
-            : BorderSide.none,
-      ),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
@@ -758,17 +686,19 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // WiFi 图标和信号强度
+              // WiFi 图标
               Container(
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: isConnected
-                      ? Colors.green.withValues(alpha: 0.15)
-                      : _getSignalColor(network.signalLevel).withValues(alpha: 0.1),
+                  color: isConnected ? Colors.green[50] : Colors.blue[50],
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: _buildSignalIcon(network.signalLevel, size: 32),
+                child: Icon(
+                  Icons.wifi,
+                  size: 32,
+                  color: isConnected ? Colors.green[700] : Colors.blue[700],
+                ),
               ),
               const SizedBox(width: 16),
               // WiFi 信息
@@ -781,91 +711,33 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                         Expanded(
                           child: Text(
                             network.ssid,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: isConnected ? Colors.green[900] : null,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (isConnected)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green[100],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.check_circle,
-                                    size: 12, color: Colors.green[700]),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '已连接',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.green[700],
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
                         if (!isConnected && network.needsPassword)
                           Icon(Icons.lock, size: 16, color: Colors.grey[600]),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getSignalColor(network.signalLevel).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            network.signalDescription,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: _getSignalColor(network.signalLevel),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          network.authModeDescription,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${network.rssi} dBm',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      '${network.signalDescription} · ${network.authModeDescription} · ${network.rssi} dBm',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              if (!isConnected)
-                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             ],
           ),
         ),
@@ -975,47 +847,4 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
     );
   }
 
-  Widget _buildSignalIcon(int level, {double size = 20}) {
-    IconData icon;
-    Color color;
-    
-    switch (level) {
-      case 4:
-        icon = Icons.signal_wifi_4_bar;
-        color = Colors.green;
-        break;
-      case 3:
-        icon = Icons.signal_wifi_4_bar;
-        color = Colors.lightGreen;
-        break;
-      case 2:
-        icon = Icons.signal_wifi_4_bar;
-        color = Colors.orange;
-        break;
-      case 1:
-        icon = Icons.signal_wifi_4_bar;
-        color = Colors.deepOrange;
-        break;
-      default:
-        icon = Icons.signal_wifi_0_bar;
-        color = Colors.red;
-    }
-    
-    return Icon(icon, size: size, color: color);
-  }
-
-  Color _getSignalColor(int level) {
-    switch (level) {
-      case 4:
-        return Colors.green;
-      case 3:
-        return Colors.lightGreen;
-      case 2:
-        return Colors.orange;
-      case 1:
-        return Colors.deepOrange;
-      default:
-        return Colors.red;
-    }
-  }
 }

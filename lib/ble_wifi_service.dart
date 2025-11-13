@@ -677,16 +677,27 @@ class BLEWiFiService {
         .map((item) => WiFiNetwork.fromJson(item as Map<String, dynamic>))
         .toList();
     
-    // 按信号强度排序
-    wifiList.sort((a, b) => b.rssi.compareTo(a.rssi));
+    // 去重：同一个 SSID 只保留信号最强的
+    final Map<String, WiFiNetwork> uniqueNetworks = {};
+    for (var network in wifiList) {
+      if (!uniqueNetworks.containsKey(network.ssid) ||
+          network.rssi > uniqueNetworks[network.ssid]!.rssi) {
+        uniqueNetworks[network.ssid] = network;
+      }
+    }
     
-    debugPrint('[BLE WiFi] 收到 ${wifiList.length} 个 WiFi 网络');
+    final deduplicatedList = uniqueNetworks.values.toList();
+    
+    // 按信号强度排序
+    deduplicatedList.sort((a, b) => b.rssi.compareTo(a.rssi));
+    
+    debugPrint('[BLE WiFi] 收到 ${wifiList.length} 个 WiFi 网络（去重后 ${deduplicatedList.length} 个）');
     if (connectedSsid != null) {
       debugPrint('[BLE WiFi] 当前已连接: $connectedSsid ($connectedIp)');
     }
     
     onWiFiScanResult?.call(WiFiScanResult(
-      networks: wifiList,
+      networks: deduplicatedList,
       connectedSsid: connectedSsid,
       connectedRssi: connectedRssi,
       connectedIp: connectedIp,
