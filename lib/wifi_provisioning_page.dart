@@ -24,6 +24,11 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
   
   List<WiFiNetwork> _wifiList = [];
   String? _errorMessage;
+  
+  // 当前连接的WiFi信息
+  String? _connectedSsid;
+  int? _connectedRssi;
+  String? _connectedIp;
 
   @override
   void initState() {
@@ -40,10 +45,13 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
     _wifiService = BLEWiFiService(widget.device);
     
     // 设置回调
-    _wifiService.onWiFiListReceived = (networks) {
+    _wifiService.onWiFiScanResult = (result) {
       if (mounted) {
         setState(() {
-          _wifiList = networks;
+          _wifiList = result.networks;
+          _connectedSsid = result.connectedSsid;
+          _connectedRssi = result.connectedRssi;
+          _connectedIp = result.connectedIp;
           _isScanning = false;
         });
       }
@@ -594,6 +602,8 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
     // WiFi 列表
     return Column(
       children: [
+        // 当前连接的WiFi（如果有）
+        if (_connectedSsid != null) _buildConnectedWiFiBar(),
         // 顶部提示
         Container(
           width: double.infinity,
@@ -632,14 +642,111 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
     );
   }
 
+  Widget _buildConnectedWiFiBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        border: Border(
+          bottom: BorderSide(color: Colors.green[200]!, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.wifi, color: Colors.green[700], size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '已连接: ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        _connectedSsid!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[900],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_connectedIp != null)
+                  Text(
+                    'IP: $_connectedIp',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.green[600],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _showDisconnectDialog,
+            icon: const Icon(Icons.link_off, size: 16),
+            label: const Text('断开'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red[700],
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWiFiCard(WiFiNetwork network) {
+    final isConnected = network.connected;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: isConnected ? 3 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isConnected
+            ? BorderSide(color: Colors.green[300]!, width: 2)
+            : BorderSide.none,
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
+          // 如果是已连接的WiFi，提示用户
+          if (isConnected) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('已连接到 ${network.ssid}'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+            return;
+          }
+          
+          // 如果当前已连接其他WiFi，询问是否切换
+          if (_connectedSsid != null && _connectedSsid != network.ssid) {
+            _showSwitchWiFiDialog(network);
+            return;
+          }
+          
           if (network.needsPassword) {
             _showPasswordDialog(network);
           } else {
@@ -656,7 +763,9 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: _getSignalColor(network.signalLevel).withOpacity(0.1),
+                  color: isConnected
+                      ? Colors.green.withValues(alpha: 0.15)
+                      : _getSignalColor(network.signalLevel).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: _buildSignalIcon(network.signalLevel, size: 32),
@@ -672,15 +781,43 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                         Expanded(
                           child: Text(
                             network.ssid,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: isConnected ? Colors.green[900] : null,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (network.needsPassword)
+                        if (isConnected)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green[100],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check_circle,
+                                    size: 12, color: Colors.green[700]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '已连接',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.green[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (!isConnected && network.needsPassword)
                           Icon(Icons.lock, size: 16, color: Colors.grey[600]),
                       ],
                     ),
@@ -693,7 +830,7 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: _getSignalColor(network.signalLevel).withOpacity(0.15),
+                            color: _getSignalColor(network.signalLevel).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -727,10 +864,113 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+              if (!isConnected)
+                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSwitchWiFiDialog(WiFiNetwork network) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('切换 WiFi'),
+        content: Text(
+          '当前已连接到 $_connectedSsid\n\n是否切换到 ${network.ssid}？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              if (network.needsPassword) {
+                _showPasswordDialog(network);
+              } else {
+                _configureWiFi(network, '');
+              }
+            },
+            child: const Text('切换'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDisconnectDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.link_off, color: Colors.orange[700]),
+            const SizedBox(width: 8),
+            const Text('断开 WiFi'),
+          ],
+        ),
+        content: Text('确定要断开当前WiFi连接吗？\n\n当前连接：$_connectedSsid'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              
+              // 显示加载状态
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('正在断开连接...'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              
+              // 设置断开结果回调
+              _wifiService.onDisconnectResult = (status, message) {
+                if (mounted) {
+                  Navigator.of(context).pop(); // 关闭加载对话框
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(message),
+                      backgroundColor: status == 'success' ? Colors.green : Colors.red,
+                    ),
+                  );
+                  
+                  if (status == 'success') {
+                    // 重新扫描WiFi列表
+                    _startWiFiScan();
+                  }
+                }
+              };
+              
+              await _wifiService.disconnectWiFi();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[700],
+            ),
+            child: const Text('断开'),
+          ),
+        ],
       ),
     );
   }
