@@ -500,38 +500,40 @@ class BLEWiFiService {
       // 累加数据到缓冲区
       _dataBuffer += chunk;
       
-      // 取消之前的超时定时器
+      // 取消之前的超时定时器（因为收到新数据了）
       _dataTimeoutTimer?.cancel();
       
-      // 尝试解析 JSON（检查是否完整）
-      try {
-        final json = jsonDecode(_dataBuffer) as Map<String, dynamic>;
+      // 检查是否有完整消息（以 \n 结尾）
+      while (_dataBuffer.contains('\n')) {
+        final newlineIndex = _dataBuffer.indexOf('\n');
+        final message = _dataBuffer.substring(0, newlineIndex);
         
-        // 解析成功，说明数据完整
-        debugPrint('[BLE WiFi] 收到完整数据 (${_dataBuffer.length} 字节)');
-        _handleCompleteData(json);
+        // 移除已处理的消息（包括 \n）
+        _dataBuffer = _dataBuffer.substring(newlineIndex + 1);
         
-        // 清空缓冲区
-        _dataBuffer = '';
-        _dataTimeoutTimer = null;
-      } catch (e) {
-        // JSON 解析失败，说明数据不完整，继续等待下一包
+        // 处理完整消息
+        if (message.isNotEmpty) {
+          debugPrint('[BLE WiFi] 收到完整消息 (${message.length} 字节)');
+          _handleCompleteMessage(message);
+        }
+      }
+      
+      // 如果还有剩余数据（未以 \n 结尾），设置超时
+      if (_dataBuffer.isNotEmpty) {
         if (_dataBuffer.length > 10000) {
           // 防止缓冲区无限增长
           debugPrint('[BLE WiFi] 缓冲区过大，清空: ${_dataBuffer.length} 字节');
           _dataBuffer = '';
-          _dataTimeoutTimer = null;
           onError?.call('数据接收异常：缓冲区溢出');
         } else {
           debugPrint('[BLE WiFi] 等待更多数据... (当前: ${_dataBuffer.length} 字节)');
-          debugPrint('[BLE WiFi] 当前数据: ${_dataBuffer.substring(0, _dataBuffer.length > 100 ? 100 : _dataBuffer.length)}...');
           
-          // 设置 3 秒超时
+          // 设置 3 秒超时（防止设备端没有发送 \n）
           _dataTimeoutTimer = Timer(const Duration(seconds: 3), () {
             debugPrint('[BLE WiFi] 数据接收超时 (${_dataBuffer.length} 字节)');
             debugPrint('[BLE WiFi] 不完整的数据: $_dataBuffer');
             
-            // 尝试修复并解析
+            // 尝试修复并解析（兼容旧版设备）
             _tryRecoverData();
           });
         }
@@ -542,6 +544,18 @@ class BLEWiFiService {
       _dataTimeoutTimer?.cancel();
       _dataTimeoutTimer = null;
       onError?.call('数据处理失败: $e');
+    }
+  }
+
+  /// 处理完整消息（以 \n 结尾的消息）
+  void _handleCompleteMessage(String message) {
+    try {
+      final json = jsonDecode(message) as Map<String, dynamic>;
+      _handleCompleteData(json);
+    } catch (e) {
+      debugPrint('[BLE WiFi] JSON 解析失败: $e');
+      debugPrint('[BLE WiFi] 消息内容: $message');
+      onError?.call('JSON 解析失败: $e');
     }
   }
 
