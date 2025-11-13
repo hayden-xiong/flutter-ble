@@ -1,10 +1,9 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'wifi_provisioning_page.dart';
 
 void main() => runApp(const MyApp());
 
@@ -123,7 +122,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('扫描错误: $e');
+      debugPrint('扫描错误: $e');
       setState(() {
         _isScanning = false;
         _isLoading = false;
@@ -369,8 +368,6 @@ class DeviceDetailPage extends StatefulWidget {
 }
 
 class _DeviceDetailPageState extends State<DeviceDetailPage> {
-  final _wifiSSIDController = TextEditingController();
-  final _wifiPasswordController = TextEditingController();
   final _wakeWordController = TextEditingController(text: 'Hey PLAUD');
   
   String _batteryLevel = '--';
@@ -410,8 +407,6 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   @override
   void dispose() {
-    _wifiSSIDController.dispose();
-    _wifiPasswordController.dispose();
     _wakeWordController.dispose();
     super.dispose();
   }
@@ -511,60 +506,59 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.wifi, color: Colors.blue[700]),
-                const SizedBox(width: 8),
-                const Text(
-                  'WiFi 配置',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _wifiSSIDController,
-              decoration: InputDecoration(
-                labelText: 'WiFi 名称 (SSID)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.wifi_tethering),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _wifiPasswordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'WiFi 密码',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.lock),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _configureWiFi,
-                icon: const Icon(Icons.send),
-                label: const Text('配置 WiFi'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _openWiFiProvisioning,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.wifi, color: Colors.blue[700]),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'WiFi 配置',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                   ),
+                  Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '为设备配置 WiFi 网络',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: Colors.blue[700]),
+                    const SizedBox(width: 6),
+                    Text(
+                      '点击扫描周围的 WiFi 网络',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -675,64 +669,21 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     );
   }
 
-  Future<void> _configureWiFi() async {
-    if (_wifiSSIDController.text.isEmpty) {
+  Future<void> _openWiFiProvisioning() async {
+    if (!_isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入 WiFi 名称')),
+        const SnackBar(content: Text('设备未连接')),
       );
       return;
     }
 
-    if (_wifiPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入 WiFi 密码')),
-      );
-      return;
-    }
-
-    // 显示加载对话框
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('正在配置 WiFi...'),
-              ],
-            ),
-          ),
-        ),
+    // 跳转到 WiFi 配网页面
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WiFiProvisioningPage(device: widget.device),
       ),
     );
-
-    try {
-      // TODO: 实际发送 WiFi 配置到设备
-      // 找到对应的特征值并写入 WiFi 信息
-      await Future.delayed(const Duration(seconds: 2)); // 模拟配置过程
-
-      if (!mounted) return;
-      Navigator.of(context).pop(); // 关闭加载对话框
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('WiFi 配置成功'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // 关闭加载对话框
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('WiFi 配置失败: ${e.toString()}')),
-      );
-    }
   }
 
   Future<void> _setWakeWord() async {
