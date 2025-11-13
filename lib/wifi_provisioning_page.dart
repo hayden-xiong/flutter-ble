@@ -602,48 +602,71 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
   }
 
   Widget _buildConnectedWiFiBar() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.green[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green[200]!, width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.wifi, color: Colors.green[700], size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '已连接: $_connectedSsid',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green[900],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (_connectedIp != null)
-                  Text(
-                    'IP: $_connectedIp',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-              ],
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.green[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // WiFi 图标
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.green[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.wifi, color: Colors.green[700], size: 32),
             ),
-          ),
-          TextButton(
-            onPressed: _showDisconnectDialog,
-            child: Text('断开', style: TextStyle(color: Colors.red[700])),
-          ),
-        ],
+            const SizedBox(width: 16),
+            // WiFi 信息
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _connectedSsid!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  if (_connectedIp != null)
+                    Text(
+                      'IP: $_connectedIp',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // 断开按钮
+            TextButton(
+              onPressed: _showDisconnectDialog,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: const Size(50, 32),
+              ),
+              child: Text('断开', style: TextStyle(color: Colors.red[700])),
+            ),
+          ],
+        ),
       ),
     );
   }
