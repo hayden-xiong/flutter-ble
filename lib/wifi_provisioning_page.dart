@@ -151,33 +151,39 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
-              Icon(Icons.wifi, color: Colors.blue[700]),
-              const SizedBox(width: 8),
-              const Expanded(child: Text('输入 WiFi 密码')),
+              Icon(Icons.wifi, color: Colors.blue[700], size: 24),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  '输入 WiFi 密码',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // WiFi 信息
+              // WiFi 信息卡片
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.network_wifi, size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
+                    Icon(Icons.network_wifi, size: 20, color: Colors.grey[700]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
                             network.ssid,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
@@ -186,32 +192,30 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${network.signalDescription} · ${network.authModeDescription}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                          const SizedBox(height: 4),
+                          Text(
+                            '${network.signalDescription} · ${network.authModeDescription}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               // 密码输入框
               TextField(
                 controller: passwordController,
                 obscureText: obscurePassword,
+                autofocus: true,
                 decoration: InputDecoration(
                   labelText: 'WiFi 密码',
                   hintText: '请输入 WiFi 密码',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
                     icon: Icon(
                       obscurePassword ? Icons.visibility : Icons.visibility_off,
@@ -222,12 +226,14 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
                       });
                     },
                   ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                autofocus: true,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
-                '密码长度需为 8-63 个字符',
+                '密码长度为 8-63 个字符',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -238,20 +244,32 @@ class _WiFiProvisioningPageState extends State<WiFiProvisioningPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               child: const Text('取消'),
             ),
-            ElevatedButton(
+            FilledButton(
               onPressed: () {
                 final password = passwordController.text;
+                if (password.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入密码')),
+                  );
+                  return;
+                }
                 if (password.length < 8 || password.length > 63) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('密码长度需为 8-63 个字符')),
+                    const SnackBar(content: Text('密码长度必须为 8-63 个字符')),
                   );
                   return;
                 }
                 Navigator.of(context).pop();
                 _configureWiFi(network, password);
               },
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               child: const Text('连接'),
             ),
           ],

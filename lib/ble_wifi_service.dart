@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'wake_word_models.dart';
 
 /// WiFi 网络信息
 class WiFiNetwork {
@@ -235,6 +236,10 @@ class BLEWiFiService {
   Function(String)? onDeleteResult; // message
   Function(String)? onClearResult; // message
   Function(String)? onError;
+  
+  // 唤醒词回调函数
+  Function(WakeWordResult)? onWakeWordResult; // 设置/删除/重置结果
+  Function(List<WakeWord>, double)? onWakeWordsReceived; // (words, threshold)
 
   BLEWiFiService(this.device);
 
@@ -473,6 +478,129 @@ class BLEWiFiService {
     }
   }
 
+  // ========================================
+  // 唤醒词相关方法
+  // ========================================
+
+  /// 设置唤醒词
+  /// 
+  /// [words] 唤醒词列表
+  /// [threshold] 检测阈值 (0.0-1.0)，默认 0.15
+  /// [replace] 是否替换现有唤醒词，默认 true
+  Future<bool> setWakeWords({
+    required List<WakeWord> words,
+    double threshold = 0.15,
+    bool replace = true,
+  }) async {
+    if (_characteristic == null) {
+      onError?.call('服务未初始化');
+      return false;
+    }
+
+    if (words.isEmpty) {
+      onError?.call('唤醒词列表不能为空');
+      return false;
+    }
+
+    if (words.length > 10) {
+      onError?.call('最多支持10个唤醒词');
+      return false;
+    }
+
+    try {
+      debugPrint('[BLE Wake] 发送设置唤醒词命令: ${words.length}个');
+      
+      final command = {
+        'cmd': 'set_wake_words',
+        'data': {
+          'words': words.map((w) => w.toJson()).toList(),
+          'threshold': threshold,
+          'replace': replace,
+        },
+      };
+      
+      await _sendCommand(command);
+      return true;
+    } catch (e) {
+      debugPrint('[BLE Wake] 设置唤醒词失败: $e');
+      onError?.call('设置唤醒词失败: $e');
+      return false;
+    }
+  }
+
+  /// 获取唤醒词列表
+  Future<bool> getWakeWords() async {
+    if (_characteristic == null) {
+      onError?.call('服务未初始化');
+      return false;
+    }
+
+    try {
+      debugPrint('[BLE Wake] 发送获取唤醒词命令');
+      
+      final command = {'cmd': 'get_wake_words'};
+      
+      await _sendCommand(command);
+      return true;
+    } catch (e) {
+      debugPrint('[BLE Wake] 获取唤醒词失败: $e');
+      onError?.call('获取唤醒词失败: $e');
+      return false;
+    }
+  }
+
+  /// 删除唤醒词
+  /// 
+  /// [text] 唤醒词文本（如："hi plaud"）
+  Future<bool> deleteWakeWord(String text) async {
+    if (_characteristic == null) {
+      onError?.call('服务未初始化');
+      return false;
+    }
+
+    if (text.isEmpty) {
+      onError?.call('唤醒词文本不能为空');
+      return false;
+    }
+
+    try {
+      debugPrint('[BLE Wake] 发送删除唤醒词命令: $text');
+      
+      final command = {
+        'cmd': 'delete_wake_word',
+        'data': {'text': text},
+      };
+      
+      await _sendCommand(command);
+      return true;
+    } catch (e) {
+      debugPrint('[BLE Wake] 删除唤醒词失败: $e');
+      onError?.call('删除唤醒词失败: $e');
+      return false;
+    }
+  }
+
+  /// 重置为默认唤醒词
+  Future<bool> resetWakeWords() async {
+    if (_characteristic == null) {
+      onError?.call('服务未初始化');
+      return false;
+    }
+
+    try {
+      debugPrint('[BLE Wake] 发送重置唤醒词命令');
+      
+      final command = {'cmd': 'reset_wake_words'};
+      
+      await _sendCommand(command);
+      return true;
+    } catch (e) {
+      debugPrint('[BLE Wake] 重置唤醒词失败: $e');
+      onError?.call('重置唤醒词失败: $e');
+      return false;
+    }
+  }
+
   /// 发送命令
   Future<void> _sendCommand(Map<String, dynamic> command) async {
     if (_characteristic == null) {
@@ -628,6 +756,15 @@ class BLEWiFiService {
           break;
         case 'get_device_info':
           _handleDeviceInfoResult(json);
+          break;
+        // 唤醒词相关命令
+        case 'set_wake_words':
+        case 'delete_wake_word':
+        case 'reset_wake_words':
+          _handleWakeWordResult(json);
+          break;
+        case 'get_wake_words':
+          _handleGetWakeWordsResult(json);
           break;
         default:
           debugPrint('[BLE WiFi] 未知命令: $cmd');
@@ -797,6 +934,55 @@ class BLEWiFiService {
     
     debugPrint('[BLE WiFi] 收到设备信息: ${deviceInfo.deviceName} (${deviceInfo.firmwareVersion})');
     onDeviceInfoReceived?.call(deviceInfo);
+  }
+
+  /// 处理唤醒词操作结果（设置/删除/重置）
+  void _handleWakeWordResult(Map<String, dynamic> json) {
+    final result = WakeWordResult.fromJson(json);
+    final cmd = json['cmd'] as String?;
+    
+    if (result.success) {
+      debugPrint('[BLE Wake] $cmd 成功: ${result.message}');
+    } else {
+      debugPrint('[BLE Wake] $cmd 失败: ${result.message} (错误码: ${result.errorCode})');
+    }
+    
+    onWakeWordResult?.call(result);
+  }
+
+  /// 处理获取唤醒词列表结果
+  void _handleGetWakeWordsResult(Map<String, dynamic> json) {
+    final status = json['status'] as String;
+    
+    if (status != 'success') {
+      final message = json['message'] as String? ?? '获取唤醒词列表失败';
+      debugPrint('[BLE Wake] 获取唤醒词列表失败: $message');
+      onError?.call(message);
+      return;
+    }
+    
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) {
+      debugPrint('[BLE Wake] 唤醒词列表结果无数据');
+      onWakeWordsReceived?.call([], 0.15);
+      return;
+    }
+    
+    final words = data['words'] as List<dynamic>?;
+    final threshold = (data['threshold'] as num?)?.toDouble() ?? 0.15;
+    
+    if (words == null) {
+      debugPrint('[BLE Wake] 唤醒词列表为空');
+      onWakeWordsReceived?.call([], threshold);
+      return;
+    }
+    
+    final wakeWordList = words
+        .map((item) => WakeWord.fromJson(item as Map<String, dynamic>))
+        .toList();
+    
+    debugPrint('[BLE Wake] 收到 ${wakeWordList.length} 个唤醒词，阈值: $threshold');
+    onWakeWordsReceived?.call(wakeWordList, threshold);
   }
 
   /// 释放资源

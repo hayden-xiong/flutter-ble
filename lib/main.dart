@@ -5,6 +5,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'wifi_provisioning_page.dart';
 import 'wifi_management_page.dart';
+import 'wake_word_config_page.dart';
 
 void main() => runApp(const MyApp());
 
@@ -369,8 +370,6 @@ class DeviceDetailPage extends StatefulWidget {
 }
 
 class _DeviceDetailPageState extends State<DeviceDetailPage> {
-  final _wakeWordController = TextEditingController(text: 'Hey PLAUD');
-  
   String _batteryLevel = '--';
   String _firmwareVersion = '--';
   bool _isConnected = true;
@@ -408,7 +407,6 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   @override
   void dispose() {
-    _wakeWordController.dispose();
     super.dispose();
   }
 
@@ -608,49 +606,59 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.mic, color: Colors.blue[700]),
-                const SizedBox(width: 8),
-                const Text(
-                  '唤醒词设置',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _wakeWordController,
-              decoration: InputDecoration(
-                labelText: '唤醒词',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.record_voice_over),
-                helperText: '设备将响应此唤醒词',
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _setWakeWord,
-                icon: const Icon(Icons.check),
-                label: const Text('设置唤醒词'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _openWakeWordConfig,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.mic, color: Colors.blue[700]),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      '唤醒词配置',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                   ),
+                  Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '自定义设备的语音唤醒词',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: Colors.blue[700]),
+                    const SizedBox(width: 6),
+                    Text(
+                      '支持多个唤醒词同时激活',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -743,31 +751,21 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     );
   }
 
-  Future<void> _setWakeWord() async {
-    if (_wakeWordController.text.isEmpty) {
+  Future<void> _openWakeWordConfig() async {
+    if (!_isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入唤醒词')),
+        const SnackBar(content: Text('设备未连接')),
       );
       return;
     }
 
-    try {
-      // TODO: 实际发送唤醒词到设备
-      await Future.delayed(const Duration(seconds: 1)); // 模拟设置过程
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('唤醒词设置成功'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('唤醒词设置失败: ${e.toString()}')),
-      );
-    }
+    // 跳转到唤醒词配置页面
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WakeWordConfigPage(device: widget.device),
+      ),
+    );
   }
 
   void _showResetDialog() {
