@@ -625,12 +625,15 @@ class BLEWiFiService {
     }
 
     final jsonString = jsonEncode(command);
-    final data = utf8.encode(jsonString);
+    // 添加换行符作为消息结束标记（与设备端协议保持一致）
+    final jsonWithEnd = jsonString + '\n';
+    final data = utf8.encode(jsonWithEnd);
     
-    debugPrint('[BLE WiFi] 发送数据长度: ${data.length} 字节');
+    debugPrint('[BLE WiFi] 发送数据长度: ${data.length} 字节（含结束符）');
+    debugPrint('[BLE WiFi] JSON内容: $jsonString');
     
     // BLE 特征值最大写入限制（保守值）
-    const int maxChunkSize = 240; // 预留一些空间给分包头部
+    const int maxChunkSize = 240;
     
     if (data.length <= maxChunkSize) {
       // 数据小于限制，直接发送
@@ -644,30 +647,26 @@ class BLEWiFiService {
     }
   }
 
-  /// 分包发送大数据
+  /// 分片发送大数据（简单分片，无头部协议）
   /// 
-  /// 协议格式：每个包的前两个字节为头部
-  /// [0]: 包序号 (0-255)
-  /// [1]: 总包数 (1-255)
-  /// [2...]: 实际数据
+  /// 将大数据分成多个小片段逐个发送
+  /// 设备端会自动累积重组（通过查找 \n 或完整 JSON）
   Future<void> _sendChunked(List<int> data) async {
     if (_characteristic == null) {
       throw Exception('特征未找到');
     }
 
-    const int maxChunkSize = 240; // 每个分包的最大数据大小（不含头部）
-    const int headerSize = 2; // 头部大小：包序号 + 总包数
-    
+    const int maxChunkSize = 240; // 每片最大数据大小
     final int totalChunks = (data.length / maxChunkSize).ceil();
     
-    if (totalChunks > 255) {
-      throw Exception('数据包过大，需要 $totalChunks 个分包（最多支持255个）');
+    if (totalChunks > 100) {
+      throw Exception('数据包过大，需要 $totalChunks 个分片（最多支持100个）');
     }
     
-    debugPrint('[BLE WiFi] ┌─ 分包传输开始 ─────────────');
+    debugPrint('[BLE WiFi] ┌─ 分片传输开始 ─────────────');
     debugPrint('[BLE WiFi] │ 总大小: ${data.length} 字节');
-    debugPrint('[BLE WiFi] │ 分包数: $totalChunks');
-    debugPrint('[BLE WiFi] │ 每包大小: 最大 $maxChunkSize 字节');
+    debugPrint('[BLE WiFi] │ 分片数: $totalChunks');
+    debugPrint('[BLE WiFi] │ 每片大小: 最大 $maxChunkSize 字节');
 
     for (int i = 0; i < totalChunks; i++) {
       final start = i * maxChunkSize;
@@ -677,31 +676,24 @@ class BLEWiFiService {
       
       final chunk = data.sublist(start, end);
       
-      // 构造分包：[包序号][总包数][数据]
-      final packet = <int>[
-        i,           // 当前包序号 (0-based)
-        totalChunks, // 总包数
-        ...chunk,    // 实际数据
-      ];
-      
-      debugPrint('[BLE WiFi] │ 发送分包 ${i + 1}/$totalChunks: '
-                 '${chunk.length} 字节 (总计: ${packet.length} 字节)');
+      debugPrint('[BLE WiFi] │ 发送第 ${i + 1}/$totalChunks 片: ${chunk.length} 字节');
       
       try {
-        await _characteristic!.write(packet, withoutResponse: false);
+        // 直接发送数据片段（无头部）
+        await _characteristic!.write(chunk, withoutResponse: false);
         
-        // 分包之间稍微延迟，给设备时间处理
+        // 片段之间稍微延迟，给设备时间处理
         if (i < totalChunks - 1) {
           await Future.delayed(const Duration(milliseconds: 50));
         }
       } catch (e) {
-        debugPrint('[BLE WiFi] │ ✗ 分包 ${i + 1} 发送失败: $e');
-        throw Exception('分包 ${i + 1}/$totalChunks 发送失败: $e');
+        debugPrint('[BLE WiFi] │ ✗ 第 ${i + 1} 片发送失败: $e');
+        throw Exception('第 ${i + 1}/$totalChunks 片发送失败: $e');
       }
     }
     
-    debugPrint('[BLE WiFi] └─ 分包传输完成 ─────────────');
-    debugPrint('[BLE WiFi] ✓ 成功发送 $totalChunks 个分包');
+    debugPrint('[BLE WiFi] └─ 分片传输完成 ─────────────');
+    debugPrint('[BLE WiFi] ✓ 成功发送 $totalChunks 个分片');
   }
 
   /// 处理通知数据包（可能分包）
