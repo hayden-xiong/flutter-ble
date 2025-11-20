@@ -502,8 +502,8 @@ class BLEWiFiService {
       return false;
     }
 
-    if (words.length > 10) {
-      onError?.call('最多支持10个唤醒词');
+    if (words.length > 5) {
+      onError?.call('最多支持5个唤醒词');
       return false;
     }
 
@@ -531,20 +531,24 @@ class BLEWiFiService {
 
   /// 优化唤醒词数据格式，减少传输大小
   Map<String, dynamic> _optimizeWakeWordData(WakeWord word) {
-    // 【临时注释】暂时不发送音素数据，等设备端准备好后再启用
-    // 保留前2个音素变体（有分包支持，可以适当多保留）
-    // 2个变体能覆盖主要发音差异，同时控制数据大小
+    // 【临时方案】暂时发送空音素数组，等设备端准备好后再启用
+    // 保留字段结构，避免设备端报错"缺少 phonemes 数组"
+    
+    // 完整版本（待启用）：
     // final optimizedPhonemes = word.phonemes.take(2).toList();
     
-    debugPrint('[BLE Wake] 发送唤醒词 "${word.text}" (暂不发送音素)');
-    // debugPrint('[BLE Wake] 优化唤醒词 "${word.text}": '
-    //     '${word.phonemes.length} -> ${optimizedPhonemes.length} 个音素');
+    // 按设备端要求：text 全大写，display 全小写
+    final textUpper = word.text.toUpperCase();
+    final displayLower = word.text.toLowerCase(); // 使用原始文本的小写形式
+    
+    debugPrint('[BLE Wake] 发送唤醒词 "$textUpper" / "$displayLower" (音素数组为空)');
     
     return {
-      'text': word.text,
-      'display': word.display,
-      // 【临时注释】等设备端准备好后恢复此字段
-      // 'phonemes': optimizedPhonemes,
+      'text': textUpper,        // 全大写：HI PLAUD
+      'display': displayLower,  // 全小写：hi plaud
+      'phonemes': [], // 发送空数组，保留字段结构
+      // 【待启用】恢复音素功能后改为：
+      // 'phonemes': word.phonemes.take(2).toList(),
     };
   }
 
@@ -1024,6 +1028,8 @@ class BLEWiFiService {
       debugPrint('[BLE Wake] $cmd 成功: ${result.message}');
     } else {
       debugPrint('[BLE Wake] $cmd 失败: ${result.message} (错误码: ${result.errorCode})');
+      // 输出原始 JSON 以便调试
+      debugPrint('[BLE Wake] 设备返回的原始数据: ${jsonEncode(json)}');
     }
     
     onWakeWordResult?.call(result);
