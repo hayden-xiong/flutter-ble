@@ -180,28 +180,40 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
       return;
     }
     
-    // 建议：一次不要选择太多唤醒词
-    if (_selectedPresets.length > 5) {
+    // 重要：限制唤醒词数量以避免数据包过大
+    if (_selectedPresets.length > 2) {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('提示'),
+          title: Row(
+            children: [
+              const Icon(Icons.warning, color: Colors.orange),
+              const SizedBox(width: 8),
+              const Text('数据传输限制'),
+            ],
+          ),
           content: Text(
             '您选择了 ${_selectedPresets.length} 个唤醒词。\n\n'
-            '建议一次最多配置 3-5 个唤醒词，以确保：\n'
-            '• 更好的识别准确度\n'
-            '• 更快的响应速度\n'
-            '• 避免数据传输问题\n\n'
-            '是否继续？',
+            '由于蓝牙数据包大小限制（250字节），'
+            '建议一次最多配置 1-2 个唤醒词。\n\n'
+            '选择过多可能导致：\n'
+            '• ❌ 数据包过大，发送失败\n'
+            '• ⚠️  识别准确度降低\n'
+            '• ⚠️  设备响应变慢\n\n'
+            '建议：分多次配置，或减少到2个以内。\n\n'
+            '是否仍要继续？',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('取消'),
+              child: const Text('取消', style: TextStyle(color: Colors.grey)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('继续发送'),
+              child: const Text(
+                '仍要尝试',
+                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),

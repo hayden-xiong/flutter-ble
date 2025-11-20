@@ -531,8 +531,9 @@ class BLEWiFiService {
 
   /// 优化唤醒词数据格式，减少传输大小
   Map<String, dynamic> _optimizeWakeWordData(WakeWord word) {
-    // 只保留必要字段，并限制音素数量
-    final optimizedPhonemes = word.phonemes.take(3).toList();
+    // 保留前2个音素变体（有分包支持，可以适当多保留）
+    // 2个变体能覆盖主要发音差异，同时控制数据大小
+    final optimizedPhonemes = word.phonemes.take(2).toList();
     
     debugPrint('[BLE Wake] 优化唤醒词 "${word.text}": '
         '${word.phonemes.length} -> ${optimizedPhonemes.length} 个音素');
@@ -540,7 +541,6 @@ class BLEWiFiService {
     return {
       'text': word.text,
       'display': word.display,
-      // 限制每个唤醒词最多传输前3个音素变体（通常已足够）
       'phonemes': optimizedPhonemes,
     };
   }
@@ -628,20 +628,80 @@ class BLEWiFiService {
     final data = utf8.encode(jsonString);
     
     debugPrint('[BLE WiFi] 发送数据长度: ${data.length} 字节');
-    debugPrint('[BLE WiFi] JSON数据: $jsonString');
     
-    // BLE 特征值最大写入限制
-    // 使用 MTU 512 时，最大写入约为 509 字节
-    // 为了兼容性，使用保守值 250 字节
-    const int maxDataSize = 250;
+    // BLE 特征值最大写入限制（保守值）
+    const int maxChunkSize = 240; // 预留一些空间给分包头部
     
-    if (data.length > maxDataSize) {
-      throw Exception('数据包过大 (${data.length}字节 > $maxDataSize字节)，'
-          '请减少唤醒词数量或联系开发者');
+    if (data.length <= maxChunkSize) {
+      // 数据小于限制，直接发送
+      debugPrint('[BLE WiFi] 直接发送: ${data.length} 字节');
+      await _characteristic!.write(data, withoutResponse: false);
+      debugPrint('[BLE WiFi] 数据发送成功');
+    } else {
+      // 数据过大，使用分包发送
+      debugPrint('[BLE WiFi] 数据过大，启用分包传输: ${data.length} 字节');
+      await _sendChunked(data);
+    }
+  }
+
+  /// 分包发送大数据
+  /// 
+  /// 协议格式：每个包的前两个字节为头部
+  /// [0]: 包序号 (0-255)
+  /// [1]: 总包数 (1-255)
+  /// [2...]: 实际数据
+  Future<void> _sendChunked(List<int> data) async {
+    if (_characteristic == null) {
+      throw Exception('特征未找到');
+    }
+
+    const int maxChunkSize = 240; // 每个分包的最大数据大小（不含头部）
+    const int headerSize = 2; // 头部大小：包序号 + 总包数
+    
+    final int totalChunks = (data.length / maxChunkSize).ceil();
+    
+    if (totalChunks > 255) {
+      throw Exception('数据包过大，需要 $totalChunks 个分包（最多支持255个）');
     }
     
-    await _characteristic!.write(data, withoutResponse: false);
-    debugPrint('[BLE WiFi] 数据发送成功');
+    debugPrint('[BLE WiFi] ┌─ 分包传输开始 ─────────────');
+    debugPrint('[BLE WiFi] │ 总大小: ${data.length} 字节');
+    debugPrint('[BLE WiFi] │ 分包数: $totalChunks');
+    debugPrint('[BLE WiFi] │ 每包大小: 最大 $maxChunkSize 字节');
+
+    for (int i = 0; i < totalChunks; i++) {
+      final start = i * maxChunkSize;
+      final end = (start + maxChunkSize > data.length) 
+          ? data.length 
+          : start + maxChunkSize;
+      
+      final chunk = data.sublist(start, end);
+      
+      // 构造分包：[包序号][总包数][数据]
+      final packet = <int>[
+        i,           // 当前包序号 (0-based)
+        totalChunks, // 总包数
+        ...chunk,    // 实际数据
+      ];
+      
+      debugPrint('[BLE WiFi] │ 发送分包 ${i + 1}/$totalChunks: '
+                 '${chunk.length} 字节 (总计: ${packet.length} 字节)');
+      
+      try {
+        await _characteristic!.write(packet, withoutResponse: false);
+        
+        // 分包之间稍微延迟，给设备时间处理
+        if (i < totalChunks - 1) {
+          await Future.delayed(const Duration(milliseconds: 50));
+        }
+      } catch (e) {
+        debugPrint('[BLE WiFi] │ ✗ 分包 ${i + 1} 发送失败: $e');
+        throw Exception('分包 ${i + 1}/$totalChunks 发送失败: $e');
+      }
+    }
+    
+    debugPrint('[BLE WiFi] └─ 分包传输完成 ─────────────');
+    debugPrint('[BLE WiFi] ✓ 成功发送 $totalChunks 个分包');
   }
 
   /// 处理通知数据包（可能分包）
