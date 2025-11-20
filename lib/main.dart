@@ -39,7 +39,8 @@ class _DeviceListPageState extends State<DeviceListPage> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () {
+    // 页面加载后自动开始扫描蓝牙设备
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPermissionsAndScan();
     });
   }
