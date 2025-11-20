@@ -1,8 +1,8 @@
 // This is a generated file; do not edit or check into version control.
-FLUTTER_ROOT=/Users/xionghao/fvm/versions/3.27.1
-FLUTTER_APPLICATION_PATH=/Users/xionghao/Documents/plaud/GitHub/flutter-ble
+FLUTTER_ROOT=/Users/xionghao/development/flutter
+FLUTTER_APPLICATION_PATH=/Users/xionghao/Documents/GitHub/flutter-ble
 COCOAPODS_PARALLEL_CODE_SIGN=true
-FLUTTER_TARGET=/Users/xionghao/Documents/plaud/GitHub/flutter-ble/lib/main.dart
+FLUTTER_TARGET=/Users/xionghao/Documents/GitHub/flutter-ble/lib/main.dart
 FLUTTER_BUILD_DIR=build
 FLUTTER_BUILD_NAME=2.0.0
 FLUTTER_BUILD_NUMBER=1
@@ -12,4 +12,4 @@ DART_DEFINES=Zmx1dHRlci5pbnNwZWN0b3Iuc3RydWN0dXJlZEVycm9ycz1mYWxzZQ==
 DART_OBFUSCATION=false
 TRACK_WIDGET_CREATION=true
 TREE_SHAKE_ICONS=false
-PACKAGE_CONFIG=/Users/xionghao/Documents/plaud/GitHub/flutter-ble/.dart_tool/package_config.json
+PACKAGE_CONFIG=/Users/xionghao/Documents/GitHub/flutter-ble/.dart_tool/package_config.json

@@ -510,10 +510,11 @@ class BLEWiFiService {
     try {
       debugPrint('[BLE Wake] 发送设置唤醒词命令: ${words.length}个');
       
+      // 优化数据格式：精简 JSON 结构，减少数据大小
       final command = {
         'cmd': 'set_wake_words',
         'data': {
-          'words': words.map((w) => w.toJson()).toList(),
+          'words': words.map((w) => _optimizeWakeWordData(w)).toList(),
           'threshold': threshold,
           'replace': replace,
         },
@@ -526,6 +527,22 @@ class BLEWiFiService {
       onError?.call('设置唤醒词失败: $e');
       return false;
     }
+  }
+
+  /// 优化唤醒词数据格式，减少传输大小
+  Map<String, dynamic> _optimizeWakeWordData(WakeWord word) {
+    // 只保留必要字段，并限制音素数量
+    final optimizedPhonemes = word.phonemes.take(3).toList();
+    
+    debugPrint('[BLE Wake] 优化唤醒词 "${word.text}": '
+        '${word.phonemes.length} -> ${optimizedPhonemes.length} 个音素');
+    
+    return {
+      'text': word.text,
+      'display': word.display,
+      // 限制每个唤醒词最多传输前3个音素变体（通常已足够）
+      'phonemes': optimizedPhonemes,
+    };
   }
 
   /// 获取唤醒词列表
@@ -610,14 +627,21 @@ class BLEWiFiService {
     final jsonString = jsonEncode(command);
     final data = utf8.encode(jsonString);
     
-    debugPrint('[BLE WiFi] 发送数据: $jsonString');
+    debugPrint('[BLE WiFi] 发送数据长度: ${data.length} 字节');
+    debugPrint('[BLE WiFi] JSON数据: $jsonString');
     
-    // 检查数据大小（建议 < 256 字节）
-    if (data.length > 256) {
-      debugPrint('[BLE WiFi] 警告: 数据大小超过建议值 (${data.length} 字节)');
+    // BLE 特征值最大写入限制
+    // 使用 MTU 512 时，最大写入约为 509 字节
+    // 为了兼容性，使用保守值 250 字节
+    const int maxDataSize = 250;
+    
+    if (data.length > maxDataSize) {
+      throw Exception('数据包过大 (${data.length}字节 > $maxDataSize字节)，'
+          '请减少唤醒词数量或联系开发者');
     }
     
     await _characteristic!.write(data, withoutResponse: false);
+    debugPrint('[BLE WiFi] 数据发送成功');
   }
 
   /// 处理通知数据包（可能分包）

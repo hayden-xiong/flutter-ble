@@ -3,6 +3,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'ble_wifi_service.dart';
 import 'wake_word_models.dart';
 import 'wake_word_presets.dart';
+import 'phonetic_converter.dart';
 
 /// 唤醒词配置页面
 class WakeWordConfigPage extends StatefulWidget {
@@ -72,6 +73,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
           SnackBar(
             content: Text(result.message),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
           ),
         );
         // 刷新列表
@@ -81,6 +83,12 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
           SnackBar(
             content: Text(result.getErrorDescription()),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: '了解',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
           ),
         );
       }
@@ -88,11 +96,26 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
     
     _bleService.onError = (message) {
       if (mounted) {
+        final formattedMessage = _formatErrorMessage(message);
         setState(() {
-          _errorMessage = message;
+          _errorMessage = formattedMessage;
           _isLoading = false;
           _isSending = false;
         });
+        
+        // 显示错误提示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(formattedMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: '知道了',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
+          ),
+        );
       }
     };
     
@@ -110,6 +133,27 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
     
     // 加载当前唤醒词
     await _loadWakeWords();
+  }
+  
+  /// 格式化错误消息，使其更友好
+  String _formatErrorMessage(String message) {
+    if (message.contains('data longer than allowed') || 
+        message.contains('数据包过大')) {
+      return '数据包过大！\n\n'
+             '建议方案：\n'
+             '• 减少唤醒词数量（推荐≤5个）\n'
+             '• 或分多次发送';
+    }
+    
+    if (message.contains('PlatformException')) {
+      // 提取关键错误信息
+      final match = RegExp(r'PlatformException\(([^,]+)').firstMatch(message);
+      if (match != null) {
+        return '蓝牙错误：${match.group(1)}\n\n请重试或重新连接设备';
+      }
+    }
+    
+    return message;
   }
 
   Future<void> _loadWakeWords() async {
@@ -134,6 +178,36 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         const SnackBar(content: Text('最多支持10个唤醒词')),
       );
       return;
+    }
+    
+    // 建议：一次不要选择太多唤醒词
+    if (_selectedPresets.length > 5) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('提示'),
+          content: Text(
+            '您选择了 ${_selectedPresets.length} 个唤醒词。\n\n'
+            '建议一次最多配置 3-5 个唤醒词，以确保：\n'
+            '• 更好的识别准确度\n'
+            '• 更快的响应速度\n'
+            '• 避免数据传输问题\n\n'
+            '是否继续？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('继续发送'),
+            ),
+          ],
+        ),
+      );
+      
+      if (confirm != true) return;
     }
     
     setState(() {
@@ -183,6 +257,214 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
     }
   }
 
+  Future<void> _showCustomWakeWordDialog() async {
+    final textController = TextEditingController();
+    final phoneticController = TextEditingController();
+    bool isSupported = false;
+    String? convertedPhonetic;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('添加自定义唤醒词'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: textController,
+                    decoration: const InputDecoration(
+                      labelText: '唤醒词文本',
+                      hintText: '例如: hello world',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        isSupported = PhoneticConverter.isSupported(value);
+                        convertedPhonetic = PhoneticConverter.convert(value);
+                        if (convertedPhonetic != null) {
+                          phoneticController.text = convertedPhonetic!;
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  if (textController.text.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSupported ? Colors.green[50] : Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSupported ? Colors.green : Colors.orange,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSupported ? Icons.check_circle : Icons.warning,
+                            color: isSupported ? Colors.green : Colors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isSupported
+                                  ? '✓ 支持本地转换'
+                                  : '⚠️ 词典中无此词，请手动输入音素',
+                              style: TextStyle(
+                                color: isSupported ? Colors.green[700] : Colors.orange[700],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: phoneticController,
+                    decoration: InputDecoration(
+                      labelText: '音素字符串',
+                      hintText: '自动生成或手动输入',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.info_outline),
+                        onPressed: () {
+                          _showPhoneticHelp(context);
+                        },
+                      ),
+                    ),
+                    readOnly: isSupported,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '支持的词汇: ${PhoneticConverter.getSupportedWords().take(10).join(", ")}...',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final text = textController.text.trim();
+                  final phonetic = phoneticController.text.trim();
+                  
+                  if (text.isEmpty || phonetic.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('请填写完整信息')),
+                    );
+                    return;
+                  }
+                  
+                  // 添加到预设（临时）
+                  setState(() {
+                    _selectedPresets.add(text);
+                  });
+                  
+                  Navigator.of(context).pop();
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('已添加自定义唤醒词: $text'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                child: const Text('添加'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPhoneticHelp(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('音素格式说明'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '音素字符串是唤醒词的发音表示，由字母组成。',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              const Text('示例:'),
+              const SizedBox(height: 8),
+              _buildExampleRow('hi', 'hi'),
+              _buildExampleRow('hello', 'hcLb'),
+              _buildExampleRow('alexa', 'cLfKSc'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '提示: 使用本工具支持的词汇可自动转换音素。',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExampleRow(String word, String phonetic) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              word,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          const Icon(Icons.arrow_forward, size: 16),
+          const SizedBox(width: 8),
+          Text(
+            phonetic,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              color: Colors.blue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _bleService.dispose();
@@ -210,6 +492,12 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         ],
       ),
       body: _buildBody(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showCustomWakeWordDialog,
+        icon: const Icon(Icons.add),
+        label: const Text('自定义'),
+        tooltip: '添加自定义唤醒词',
+      ),
       bottomNavigationBar: _buildBottomBar(),
     );
   }
