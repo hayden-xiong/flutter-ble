@@ -531,17 +531,20 @@ class BLEWiFiService {
 
   /// 优化唤醒词数据格式，减少传输大小
   Map<String, dynamic> _optimizeWakeWordData(WakeWord word) {
+    // 【临时注释】暂时不发送音素数据，等设备端准备好后再启用
     // 保留前2个音素变体（有分包支持，可以适当多保留）
     // 2个变体能覆盖主要发音差异，同时控制数据大小
-    final optimizedPhonemes = word.phonemes.take(2).toList();
+    // final optimizedPhonemes = word.phonemes.take(2).toList();
     
-    debugPrint('[BLE Wake] 优化唤醒词 "${word.text}": '
-        '${word.phonemes.length} -> ${optimizedPhonemes.length} 个音素');
+    debugPrint('[BLE Wake] 发送唤醒词 "${word.text}" (暂不发送音素)');
+    // debugPrint('[BLE Wake] 优化唤醒词 "${word.text}": '
+    //     '${word.phonemes.length} -> ${optimizedPhonemes.length} 个音素');
     
     return {
       'text': word.text,
       'display': word.display,
-      'phonemes': optimizedPhonemes,
+      // 【临时注释】等设备端准备好后恢复此字段
+      // 'phonemes': optimizedPhonemes,
     };
   }
 
@@ -626,7 +629,7 @@ class BLEWiFiService {
 
     final jsonString = jsonEncode(command);
     // 添加换行符作为消息结束标记（与设备端协议保持一致）
-    final jsonWithEnd = jsonString + '\n';
+    final jsonWithEnd = '$jsonString\n';
     final data = utf8.encode(jsonWithEnd);
     
     debugPrint('[BLE WiFi] 发送数据长度: ${data.length} 字节（含结束符）');
