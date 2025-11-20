@@ -556,32 +556,24 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '在下方选择新的唤醒词后点击"发送"按钮',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '在下方选择新的唤醒词后点击"设置"按钮',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
                   ),
-                ),
                 if (_currentWakeWords.isNotEmpty)
                   TextButton.icon(
                     onPressed: () {
                       setState(() {
+                        // 清空选择列表，让用户重新选择
                         _selectedPresets.clear();
-                        for (var word in _currentWakeWords) {
-                          _selectedPresets.add(word.text);
-                        }
                         _sendSuccess = false;
                       });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('已将当前唤醒词添加到选择列表'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
                     },
-                    icon: const Icon(Icons.copy_all, size: 16),
+                    icon: const Icon(Icons.refresh, size: 16),
                     label: const Text(
                       '重选',
                       style: TextStyle(fontSize: 12),
@@ -610,7 +602,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '暂无唤醒词，请在下方选择并发送',
+                        '暂无唤醒词，请在下方选择并设置',
                         style: TextStyle(
                           color: Colors.orange[700],
                           fontSize: 13,
@@ -788,37 +780,12 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                preset.display,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            if (isSelected)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[700],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text(
-                                  '已选',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                          ],
+                        Text(
+                          preset.display,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -880,7 +847,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                       ),
                       if (_selectedPresets.isNotEmpty)
                         Text(
-                          '发送后将替换设备上的唤醒词',
+                          '设置后将替换设备上的唤醒词',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.orange[700],
@@ -921,10 +888,10 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     : Icon(_sendSuccess ? Icons.check_circle : Icons.send),
                 label: Text(
                   _isSending 
-                      ? '正在发送到设备...' 
+                      ? '正在设置...' 
                       : _sendSuccess 
-                          ? '配置成功 ✓' 
-                          : '发送到设备（将替换）'
+                          ? '设置成功 ✓' 
+                          : '设置到设备'
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _sendSuccess ? Colors.green : null,
