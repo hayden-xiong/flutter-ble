@@ -23,6 +23,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
   
   bool _isLoading = true;
   bool _isSending = false;
+  bool _sendSuccess = false;  // 发送成功状态
   String? _errorMessage;
   
   // 当前唤醒词列表
@@ -66,6 +67,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
       
       setState(() {
         _isSending = false;
+        _sendSuccess = result.success;  // 记录发送结果
       });
       
       if (result.success) {
@@ -78,6 +80,15 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         );
         // 刷新列表
         _loadWakeWords();
+        
+        // 3秒后重置成功状态
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _sendSuccess = false;
+            });
+          }
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -224,6 +235,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
     
     setState(() {
       _isSending = true;
+      _sendSuccess = false;  // 重置成功状态
     });
     
     // 构建唤醒词列表
@@ -383,6 +395,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                   // 添加到预设（临时）
                   setState(() {
                     _selectedPresets.add(text);
+                    _sendSuccess = false;  // 重置发送成功状态
                   });
                   
                   Navigator.of(context).pop();
@@ -732,6 +745,8 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                   }
                   _selectedPresets.add(preset.text);
                 }
+                // 选择变化时重置发送成功状态
+                _sendSuccess = false;
               });
             },
             child: Padding(
@@ -814,6 +829,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     onPressed: () {
                       setState(() {
                         _selectedPresets.clear();
+                        _sendSuccess = false;  // 重置发送成功状态
                       });
                     },
                     child: const Text('清空'),
@@ -825,7 +841,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton.icon(
-                onPressed: _isSending || _selectedPresets.isEmpty
+                onPressed: _isSending || _selectedPresets.isEmpty || _sendSuccess
                     ? null
                     : _sendWakeWords,
                 icon: _isSending
@@ -837,9 +853,16 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.send),
-                label: Text(_isSending ? '发送中...' : '发送到设备'),
+                    : Icon(_sendSuccess ? Icons.check_circle : Icons.send),
+                label: Text(
+                  _isSending 
+                      ? '发送中...' 
+                      : _sendSuccess 
+                          ? '已发送 ✓' 
+                          : '发送到设备'
+                ),
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: _sendSuccess ? Colors.green : null,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
