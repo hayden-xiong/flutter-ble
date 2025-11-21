@@ -38,7 +38,6 @@ final Map<String, PresetWakeWord> presetWakeWords = {
     text: 'HI PLAUD',
     display: 'Hi Plaud',
     phonemes: [
-      'HI PLAA1D',
       'HI PLAD',
       'HI PLED',
     ],

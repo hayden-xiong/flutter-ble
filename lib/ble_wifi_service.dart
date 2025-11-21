@@ -1072,7 +1072,23 @@ class BLEWiFiService {
     }
     
     final wakeWordList = words
-        .map((item) => WakeWord.fromJson(item as Map<String, dynamic>))
+        .map((item) {
+          final word = WakeWord.fromJson(item as Map<String, dynamic>);
+          
+          // 防御性处理：如果音素只有1个且等于唤醒词本身（大写），
+          // 说明是设备自动填充的，客户端将其清空
+          if (word.phonemes.length == 1 && 
+              word.phonemes[0].toUpperCase() == word.text.toUpperCase()) {
+            debugPrint('[BLE Wake] 检测到设备自动填充的音素: ${word.text} -> ${word.phonemes[0]}，已清空');
+            return WakeWord(
+              text: word.text,
+              display: word.display,
+              phonemes: [], // 清空自动填充的音素
+            );
+          }
+          
+          return word;
+        })
         .toList();
     
     debugPrint('[BLE Wake] 收到 ${wakeWordList.length} 个唤醒词，阈值: $threshold');
