@@ -1073,18 +1073,31 @@ class BLEWiFiService {
     
     final wakeWordList = words
         .map((item) {
-          final word = WakeWord.fromJson(item as Map<String, dynamic>);
+          final itemMap = item as Map<String, dynamic>;
           
-          // 防御性处理：如果音素只有1个且等于唤醒词本身（大写），
-          // 说明是设备自动填充的，客户端将其清空
-          if (word.phonemes.length == 1 && 
-              word.phonemes[0].toUpperCase() == word.text.toUpperCase()) {
-            debugPrint('[BLE Wake] 检测到设备自动填充的音素: ${word.text} -> ${word.phonemes[0]}，已清空');
-            return WakeWord(
-              text: word.text,
-              display: word.display,
-              phonemes: [], // 清空自动填充的音素
-            );
+          // 🔍 打印设备返回的原始数据
+          debugPrint('[BLE Wake] 设备返回原始数据: text="${itemMap['text']}", phonemes=${itemMap['phonemes']}');
+          
+          final word = WakeWord.fromJson(itemMap);
+          
+          // 防御性处理：清理设备自动填充的无效音素
+          // 场景1：音素只有1个且等于唤醒词本身
+          // 场景2：音素只有1个且等于唤醒词本身去除空格后
+          // 场景3：音素只有1个且包含唤醒词的所有字母（没有实际音素信息）
+          if (word.phonemes.length == 1) {
+            final phoneme = word.phonemes[0].toUpperCase().trim();
+            final textClean = word.text.toUpperCase().trim();
+            final textNoSpace = textClean.replaceAll(' ', '');
+            
+            // 检查是否是自动填充的（相同或只是去掉空格）
+            if (phoneme == textClean || phoneme == textNoSpace || phoneme.replaceAll(' ', '') == textNoSpace) {
+              debugPrint('[BLE Wake] ✂️ 检测到设备自动填充的音素: "${word.text}" -> "${word.phonemes[0]}"，已清空');
+              return WakeWord(
+                text: word.text,
+                display: word.display,
+                phonemes: [], // 清空自动填充的音素
+              );
+            }
           }
           
           return word;
