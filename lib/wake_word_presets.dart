@@ -41,23 +41,80 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'hi PLAA1D',
       'hi PLaD',
       'hi PLeD',
-      'HH AY1 P L AA1 D',
-      'HH AY P L AA D',
+      'HI PLAD',
+      'HI PLED',
     ],
     category: 'robot',
-    description: '官方推荐唤醒词',
+    description: '官方推荐',
   ),
-  'hey plaud': PresetWakeWord(
-    text: 'hey plaud',
-    display: 'Hey Plaud',
+  'hi pikachu': PresetWakeWord(
+    text: 'hi pikachu',
+    display: 'Hi Pikachu',
     phonemes: [
-      'HH EY1 PLAA1D',
-      'HH EY PLAA1D',
-      'hey PLaD',
-      'HH EY1 P L AA1 D',
+      'hi pikachu',
+      'HH AY1 P IY1 K AH0 CH UW0',
+      'HH AY P IY K AH CH UW',
     ],
     category: 'robot',
-    description: '官方推荐唤醒词',
+    description: '皮卡丘',
+  ),
+
+  'hi doraemon': PresetWakeWord(
+    text: 'hi doraemon',
+    display: 'Hi Doraemon',
+    phonemes: [
+      'hi doraemon',
+      'HH AY1 D AO1 R AH0 M AA1 N',
+      'HH AY D AO R AH M AA N',
+    ],
+    category: 'robot',
+    description: '哆啦A梦',
+  ),
+  'hey gundam': PresetWakeWord(
+    text: 'hey gundam',
+    display: 'Hey Gundam',
+    phonemes: [
+      'hey gundam',
+      'HH EY1 G AH1 N D AE0 M',
+      'HH EY G AH N D AE M',
+    ],
+    category: 'robot',
+    description: '高达',
+  ),
+  'hi kitty': PresetWakeWord(
+    text: 'hi kitty',
+    display: 'Hi Kitty',
+    phonemes: [
+    ],
+    category: 'robot',
+    description: 'Hello Kitty',
+  ),
+  'hey mario': PresetWakeWord(
+    text: 'hey mario',
+    display: 'Hey Mario',
+    phonemes: [
+    ],
+    category: 'robot',
+    description: '马里奥',
+  ),
+  'hi sonic': PresetWakeWord(
+    text: 'hi sonic',
+    display: 'Hi Sonic',
+    phonemes: [
+      'hi sonic',
+      'HH AY1 S AA1 N IH0 K',
+      'HH AY S AA N IH K',
+    ],
+    category: 'robot',
+    description: '索尼克',
+  ),
+  'hey iron man': PresetWakeWord(
+    text: 'hey iron man',
+    display: 'Hey Iron Man',
+    phonemes: [
+    ],
+    category: 'robot',
+    description: '钢铁侠',
   ),
 
   // ========================================
@@ -68,144 +125,45 @@ final Map<String, PresetWakeWord> presetWakeWords = {
     display: 'Hi Assistant',
     phonemes: [
       'hi assistant',
-      'HH AY1 AH0 S IH1 S T AH0 N T',
       'HH AY AH S IH S T AH N T',
     ],
     category: 'general',
-    description: '通用语音助手',
+    description: '语音助手',
   ),
   'hey assistant': PresetWakeWord(
     text: 'hey assistant',
     display: 'Hey Assistant',
     phonemes: [
       'hey assistant',
-      'HH EY1 AH0 S IH1 S T AH0 N T',
       'HH EY AH S IH S T AH N T',
     ],
     category: 'general',
-    description: '通用语音助手',
+    description: '语音助手',
   ),
   'ok robot': PresetWakeWord(
     text: 'ok robot',
     display: 'OK Robot',
     phonemes: [
-      'ok robot',
-      'OW1 K EY1 R OW1 B AA1 T',
-      'OW K EY R OW B AA T',
     ],
     category: 'general',
-    description: '机器人助手',
-  ),
-  'hey siri': PresetWakeWord(
-    text: 'hey siri',
-    display: 'Hey Siri',
-    phonemes: [
-      'hey siri',
-      'HH EY1 S IH1 R IY0',
-      'HH EY S IH R IY',
-    ],
-    category: 'general',
-    description: 'Siri风格（仅供参考）',
-  ),
-  'ok google': PresetWakeWord(
-    text: 'ok google',
-    display: 'OK Google',
-    phonemes: [
-      'ok google',
-      'OW1 K EY1 G UW1 G AH0 L',
-      'OW K EY G UW G AH L',
-    ],
-    category: 'general',
-    description: 'Google风格（仅供参考）',
+    description: '机器人',
   ),
 
   'hi buddy': PresetWakeWord(
     text: 'hi buddy',
     display: 'Hi Buddy',
     phonemes: [
-      'hi buddy',
-      'HH AY1 B AH1 D IY0',
-      'HH AY B AH D IY',
     ],
     category: 'general',
-    description: '友好的伙伴',
+    description: '伙伴',
   ),
   'hey friend': PresetWakeWord(
     text: 'hey friend',
     display: 'Hey Friend',
     phonemes: [
-      'hey friend',
-      'HH EY1 F R EH1 N D',
-      'HH EY F R EH N D',
     ],
     category: 'general',
-    description: '友好的朋友',
-  ),
-  'hi there': PresetWakeWord(
-    text: 'hi there',
-    display: 'Hi There',
-    phonemes: [
-      'hi there',
-      'HH AY1 DH EH1 R',
-      'HH AY DH EH R',
-    ],
-    category: 'general',
-    description: '打招呼',
-  ),
-  'hello friend': PresetWakeWord(
-    text: 'hello friend',
-    display: 'Hello Friend',
-    phonemes: [
-      'hello friend',
-      'HH AH0 L OW1 F R EH1 N D',
-      'HH AH L OW F R EH N D',
-    ],
-    category: 'general',
-    description: '问候朋友',
-  ),
-  'hey jarvis': PresetWakeWord(
-    text: 'hey jarvis',
-    display: 'Hey Jarvis',
-    phonemes: [
-      'hey jarvis',
-      'HH EY1 JH AA1R V IH0 S',
-      'HH EY JH AAR V IH S',
-    ],
-    category: 'robot',
-    description: '钢铁侠的AI助手',
-  ),
-  'ok computer': PresetWakeWord(
-    text: 'ok computer',
-    display: 'OK Computer',
-    phonemes: [
-      'ok computer',
-      'OW1 K EY1 K AH0 M P Y UW1 T ER0',
-      'OW K EY K AH M P Y UW T ER',
-    ],
-    category: 'robot',
-    description: '电脑助手',
-  ),
-  'hey cortana': PresetWakeWord(
-    text: 'hey cortana',
-    display: 'Hey Cortana',
-    phonemes: [
-      'hey cortana',
-      'HH EY1 K AO0 R T AE1 N AH0',
-      'HH EY K AO R T AE N AH',
-    ],
-    category: 'robot',
-    description: '微软助手风格',
-  ),
-  'alexa': PresetWakeWord(
-    text: 'alexa',
-    display: 'Alexa',
-    phonemes: [
-      'alexa',
-      'AH0 L EH1 K S AH0',
-      'AH L EH K S AH',
-    ],
-    category: 'robot',
-    description: 'Amazon助手风格',
+    description: '朋友',
   ),
 };
 

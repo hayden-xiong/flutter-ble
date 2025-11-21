@@ -484,13 +484,6 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                   });
                   
                   Navigator.of(context).pop();
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('已添加自定义唤醒词: $text'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey[900],
@@ -610,6 +603,13 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         ],
       ),
       body: _buildBody(),
+      floatingActionButton: _selectedCategory == 'custom' && _customWakeWords.isNotEmpty
+          ? FloatingActionButton(
+              onPressed: _showCustomWakeWordDialog,
+              backgroundColor: Colors.grey[900],
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       bottomNavigationBar: _buildBottomBar(),
     );
   }
@@ -1047,7 +1047,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         children: [
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
               physics: const BouncingScrollPhysics(),
               itemCount: _customWakeWords.length,
               itemBuilder: (context, index) {
@@ -1074,39 +1074,6 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                   },
                 );
               },
-            ),
-          ),
-          // 底部添加按钮
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: Colors.grey[200]!),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: ElevatedButton.icon(
-                onPressed: _showCustomWakeWordDialog,
-                icon: const Icon(Icons.add, size: 20),
-                label: const Text(
-                  '添加更多',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[900],
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-              ),
             ),
           ),
         ],
