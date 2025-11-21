@@ -137,22 +137,26 @@ class _DeviceListPageState extends State<DeviceListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('FlutterDemo-设备列表'),
+        title: const Text(
+          'FlutterDemo-设备列表',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
             icon: _isScanning
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: Colors.grey[900],
                     ),
                   )
-                : const Icon(Icons.refresh),
+                : Icon(Icons.refresh, size: 22, color: Colors.grey[900]),
             onPressed: _isScanning ? null : _startScan,
           ),
         ],
@@ -178,22 +182,33 @@ class _DeviceListPageState extends State<DeviceListPage> {
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 16, color: Colors.grey[800]),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
+              const SizedBox(height: 32),
+              ElevatedButton(
                 onPressed: _startScan,
-                icon: const Icon(Icons.refresh),
-                label: const Text('重试'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[900],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  '重试',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
@@ -210,18 +225,29 @@ class _DeviceListPageState extends State<DeviceListPage> {
             const SizedBox(height: 16),
             Text(
               '未发现 PLAUD 设备',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[800]),
             ),
             const SizedBox(height: 8),
             Text(
               '请确保设备已开启并在附近',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 32),
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: _startScan,
-              icon: const Icon(Icons.refresh),
-              label: const Text('重新扫描'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[900],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                '重新扫描',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -247,12 +273,15 @@ class _DeviceListPageState extends State<DeviceListPage> {
             ? device.advName 
             : 'PLAUD 设备';
     
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => _connectToDevice(device),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -262,13 +291,13 @@ class _DeviceListPageState extends State<DeviceListPage> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.headset,
                   size: 32,
-                  color: Colors.blue[700],
+                  color: Colors.grey[900],
                 ),
               ),
               const SizedBox(width: 16),
@@ -278,9 +307,10 @@ class _DeviceListPageState extends State<DeviceListPage> {
                   children: [
                     Text(
                       deviceName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -418,13 +448,17 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         : 'PLAUD 设备';
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(deviceName),
+        title: Text(
+          deviceName,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.bluetooth_disabled),
+            icon: Icon(Icons.bluetooth_disabled, size: 22, color: Colors.grey[900]),
             onPressed: _disconnect,
             tooltip: '断开连接',
           ),
@@ -449,8 +483,11 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   Widget _buildDeviceInfoCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -458,15 +495,19 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue[700]),
+                Icon(Icons.info_outline, color: Colors.grey[800], size: 20),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   '设备信息',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[900],
+                  ),
                 ),
               ],
             ),
-            const Divider(height: 24),
+            Divider(height: 24, color: Colors.grey[200]),
             _buildInfoRow('设备名称', widget.device.platformName),
             _buildInfoRow('MAC 地址', widget.device.remoteId.toString()),
             _buildInfoRow('电池电量', _batteryLevel),
@@ -490,13 +531,17 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         children: [
           Text(
             label,
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
           ),
           Text(
             value,
             style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: valueColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? Colors.grey[900],
             ),
           ),
         ],
@@ -506,10 +551,13 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   Widget _buildWiFiConfigCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: _openWiFiProvisioning,
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -518,12 +566,16 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.wifi, color: Colors.blue[700]),
+                  Icon(Icons.wifi, color: Colors.grey[800], size: 20),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'WiFi 配置',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
+                      ),
                     ),
                   ),
                   Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
@@ -537,23 +589,23 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                   color: Colors.grey[600],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.info_outline, size: 14, color: Colors.blue[700]),
+                    Icon(Icons.info_outline, size: 14, color: Colors.grey[700]),
                     const SizedBox(width: 6),
                     Text(
                       '点击扫描周围的 WiFi 网络',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue[700],
+                        color: Colors.grey[700],
                       ),
                     ),
                   ],
@@ -568,29 +620,39 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   Widget _buildWiFiManagementCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: _openWiFiManagement,
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              Icon(Icons.wifi_tethering, color: Colors.orange[700]),
+              Icon(Icons.wifi_tethering, color: Colors.grey[800], size: 20),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'WiFi 管理',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
+                      ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       '查看和管理已保存的 WiFi',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
@@ -605,10 +667,13 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   Widget _buildWakeWordCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: _openWakeWordConfig,
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -617,12 +682,16 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.mic, color: Colors.blue[700]),
+                  Icon(Icons.mic, color: Colors.grey[800], size: 20),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       '唤醒词配置',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
+                      ),
                     ),
                   ),
                   Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
@@ -636,23 +705,23 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                   color: Colors.grey[600],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.info_outline, size: 14, color: Colors.blue[700]),
+                    Icon(Icons.info_outline, size: 14, color: Colors.grey[700]),
                     const SizedBox(width: 6),
                     Text(
                       '支持多个唤醒词同时激活',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue[700],
+                        color: Colors.grey[700],
                       ),
                     ),
                   ],
@@ -667,14 +736,24 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   Widget _buildAdvancedSettingsCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: Column(
         children: [
           ListTile(
-            leading: Icon(Icons.volume_up, color: Colors.blue[700]),
-            title: const Text('音量调节'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            leading: Icon(Icons.volume_up, color: Colors.grey[800], size: 20),
+            title: Text(
+              '音量调节',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[900],
+              ),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             onTap: () {
               // TODO: 打开音量调节页面
               ScaffoldMessenger.of(context).showSnackBar(
@@ -682,11 +761,18 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               );
             },
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: Colors.grey[200]),
           ListTile(
-            leading: Icon(Icons.language, color: Colors.blue[700]),
-            title: const Text('语言设置'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            leading: Icon(Icons.language, color: Colors.grey[800], size: 20),
+            title: Text(
+              '语言设置',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[900],
+              ),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             onTap: () {
               // TODO: 打开语言设置
               ScaffoldMessenger.of(context).showSnackBar(
@@ -694,11 +780,18 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               );
             },
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: Colors.grey[200]),
           ListTile(
-            leading: Icon(Icons.update, color: Colors.blue[700]),
-            title: const Text('固件更新'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            leading: Icon(Icons.update, color: Colors.grey[800], size: 20),
+            title: Text(
+              '固件更新',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[900],
+              ),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             onTap: () {
               // TODO: 检查固件更新
               ScaffoldMessenger.of(context).showSnackBar(
@@ -706,11 +799,18 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               );
             },
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: Colors.grey[200]),
           ListTile(
-            leading: Icon(Icons.restore, color: Colors.orange[700]),
-            title: const Text('恢复出厂设置'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            leading: Icon(Icons.restore, color: Colors.grey[800], size: 20),
+            title: Text(
+              '恢复出厂设置',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[900],
+              ),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             onTap: _showResetDialog,
           ),
         ],
@@ -773,19 +873,53 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('恢复出厂设置'),
-        content: const Text('此操作将清除所有设置并恢复到出厂状态，确定要继续吗？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          '恢复出厂设置',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[900],
+          ),
+        ),
+        content: Text(
+          '此操作将清除所有设置并恢复到出厂状态，确定要继续吗？',
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.grey[700],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(
+              '取消',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _resetDevice();
             },
-            child: const Text('确定', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text(
+              '确定',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
