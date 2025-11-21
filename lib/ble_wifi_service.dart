@@ -531,24 +531,23 @@ class BLEWiFiService {
 
   /// 优化唤醒词数据格式，减少传输大小
   Map<String, dynamic> _optimizeWakeWordData(WakeWord word) {
-    // 【临时方案】暂时发送空音素数组，等设备端准备好后再启用
-    // 保留字段结构，避免设备端报错"缺少 phonemes 数组"
-    
-    // 完整版本（待启用）：
-    // final optimizedPhonemes = word.phonemes.take(2).toList();
-    
     // 按设备端要求：text 全大写，display 全小写
     final textUpper = word.text.toUpperCase();
     final displayLower = word.text.toLowerCase(); // 使用原始文本的小写形式
     
-    debugPrint('[BLE Wake] 发送唤醒词 "$textUpper" / "$displayLower" (音素数组为空)');
+    // 如果音素不为空，发送音素；否则发送空数组
+    final phonemesToSend = word.phonemes.isNotEmpty ? word.phonemes : [];
+    
+    if (word.phonemes.isNotEmpty) {
+      debugPrint('[BLE Wake] 发送唤醒词 "$textUpper" / "$displayLower" (音素: ${word.phonemes.length}个)');
+    } else {
+      debugPrint('[BLE Wake] 发送唤醒词 "$textUpper" / "$displayLower" (音素为空)');
+    }
     
     return {
       'text': textUpper,        // 全大写：HI PLAUD
       'display': displayLower,  // 全小写：hi plaud
-      'phonemes': [], // 发送空数组，保留字段结构
-      // 【待启用】恢复音素功能后改为：
-      // 'phonemes': word.phonemes.take(2).toList(),
+      'phonemes': phonemesToSend, // 根据实际情况发送音素或空数组
     };
   }
 
