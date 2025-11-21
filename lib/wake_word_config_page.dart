@@ -5,6 +5,9 @@ import 'wake_word_models.dart';
 import 'wake_word_presets.dart';
 import 'phonetic_converter.dart';
 
+/// 敏感度枚举
+enum Sensitivity { low, medium, high }
+
 /// 唤醒词配置页面
 class WakeWordConfigPage extends StatefulWidget {
   final BluetoothDevice device;
@@ -28,13 +31,18 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
   
   // 当前唤醒词列表
   List<WakeWord> _currentWakeWords = [];
-  double _threshold = 0.15;
   
   // 已选择的预置唤醒词
   final Set<String> _selectedPresets = {};
   
   // 当前显示的分类
-  String _selectedCategory = 'xiaozhi';
+  String _selectedCategory = 'general';
+  
+  // 重选后的现有唤醒词列表
+  List<WakeWord> _reselectedWakeWords = [];
+  
+  // 敏感度
+  Sensitivity _sensitivity = Sensitivity.medium;
 
   @override
   void initState() {
@@ -50,8 +58,9 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
       if (mounted) {
         setState(() {
           _currentWakeWords = words;
-          _threshold = threshold;
           _isLoading = false;
+          // 根据设备返回的阈值设置敏感度
+          _sensitivity = _thresholdToSensitivity(threshold);
           
           // 不自动选中设备上的唤醒词
           // 用户需要手动选择要配置的唤醒词
@@ -165,6 +174,29 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
     await _bleService.getWakeWords();
   }
 
+  // 将敏感度转换为阈值
+  double _sensitivityToThreshold(Sensitivity sensitivity) {
+    switch (sensitivity) {
+      case Sensitivity.low:
+        return 0.30;
+      case Sensitivity.medium:
+        return 0.20;
+      case Sensitivity.high:
+        return 0.15;
+    }
+  }
+  
+  // 将阈值转换为敏感度
+  Sensitivity _thresholdToSensitivity(double threshold) {
+    if (threshold <= 0.17) {
+      return Sensitivity.high;
+    } else if (threshold <= 0.25) {
+      return Sensitivity.medium;
+    } else {
+      return Sensitivity.low;
+    }
+  }
+
   Future<void> _sendWakeWords() async {
     if (_selectedPresets.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -199,9 +231,12 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
       }
     }
     
+    // 使用敏感度对应的阈值
+    final threshold = _sensitivityToThreshold(_sensitivity);
+    
     await _bleService.setWakeWords(
       words: words,
-      threshold: _threshold,
+      threshold: threshold,
       replace: true,
     );
   }
@@ -237,6 +272,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
     final textController = TextEditingController();
     final phoneticController = TextEditingController();
     bool isSupported = false;
+    bool showAdvanced = false;
     String? convertedPhonetic;
 
     await showDialog(
@@ -244,18 +280,28 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text('添加自定义唤醒词'),
+            title: const Text(
+              '自定义唤醒词',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 唤醒词输入框
                   TextField(
                     controller: textController,
-                    decoration: const InputDecoration(
-                      labelText: '唤醒词文本',
-                      hintText: '例如: hello world',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: '唤醒词',
+                      hintText: '输入您的唤醒词',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.mic),
                     ),
                     onChanged: (value) {
                       setDialogState(() {
@@ -268,78 +314,126 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  
+                  // 自动转换提示
                   if (textController.text.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isSupported ? Colors.green[50] : Colors.orange[50],
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSupported ? Colors.green : Colors.orange,
+                          color: isSupported ? Colors.green[200]! : Colors.orange[200]!,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            isSupported ? Icons.check_circle : Icons.warning,
+                            isSupported ? Icons.check_circle : Icons.info_outline,
                             color: isSupported ? Colors.green : Colors.orange,
-                            size: 20,
+                            size: 18,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               isSupported
-                                  ? '✓ 支持本地转换'
-                                  : '⚠️ 词典中无此词，请手动输入音素',
+                                  ? '已自动转换音素'
+                                  : '词典中无此词，需手动输入音素',
                               style: TextStyle(
                                 color: isSupported ? Colors.green[700] : Colors.orange[700],
-                                fontSize: 13,
+                                fontSize: 12,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  
+                  // 高级选项展开按钮
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: phoneticController,
-                    decoration: InputDecoration(
-                      labelText: '音素字符串',
-                      hintText: '自动生成或手动输入',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.info_outline),
-                        onPressed: () {
-                          _showPhoneticHelp(context);
-                        },
+                  InkWell(
+                    onTap: () {
+                      setDialogState(() {
+                        showAdvanced = !showAdvanced;
+                      });
+                    },
+                    child: Row(
+                      children: [
+                        Icon(
+                          showAdvanced ? Icons.expand_less : Icons.expand_more,
+                          size: 20,
+                          color: Colors.grey[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '高级选项',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // 高级选项内容
+                  if (showAdvanced) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phoneticController,
+                      decoration: InputDecoration(
+                        labelText: '音素字符串',
+                        hintText: '自动生成或手动输入',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.help_outline, size: 20),
+                          onPressed: () {
+                            _showPhoneticHelp(context);
+                          },
+                        ),
+                      ),
+                      readOnly: isSupported,
+                      maxLines: 2,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '音素是唤醒词的发音表示，通常会自动生成',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
                       ),
                     ),
-                    readOnly: isSupported,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '支持的词汇: ${PhoneticConverter.getSupportedWords().take(10).join(", ")}...',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('取消'),
+                child: Text(
+                  '取消',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
               ),
               ElevatedButton(
                 onPressed: () {
                   final text = textController.text.trim();
                   final phonetic = phoneticController.text.trim();
                   
-                  if (text.isEmpty || phonetic.isEmpty) {
+                  if (text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('请填写完整信息')),
+                      const SnackBar(content: Text('请输入唤醒词')),
+                    );
+                    return;
+                  }
+                  
+                  if (phonetic.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('音素生成失败，请手动输入')),
                     );
                     return;
                   }
@@ -347,7 +441,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                   // 添加到预设（临时）
                   setState(() {
                     _selectedPresets.add(text);
-                    _sendSuccess = false;  // 重置发送成功状态
+                    _sendSuccess = false;
                   });
                   
                   Navigator.of(context).pop();
@@ -359,6 +453,12 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     ),
                   );
                 },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
                 child: const Text('添加'),
               ),
             ],
@@ -451,30 +551,38 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('唤醒词配置'),
+        title: const Text(
+          '唤醒词配置',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, size: 22),
             onPressed: _isLoading ? null : _loadWakeWords,
             tooltip: '刷新',
-          ),
-          IconButton(
-            icon: const Icon(Icons.restore),
-            onPressed: _isSending ? null : _resetWakeWords,
-            tooltip: '重置为默认',
           ),
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCustomWakeWordDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('自定义'),
-        tooltip: '添加自定义唤醒词',
-      ),
+      floatingActionButton: _selectedCategory != 'custom'
+          ? FloatingActionButton.extended(
+              onPressed: _showCustomWakeWordDialog,
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text(
+                '自定义',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: Colors.blue,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            )
+          : null,
       bottomNavigationBar: _buildBottomBar(),
     );
   }
@@ -532,56 +640,75 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
   Widget _buildCurrentWakeWordsCard() {
     return Card(
       margin: const EdgeInsets.all(16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.mic, color: Colors.blue[700]),
+                Icon(Icons.mic, color: Colors.grey[800], size: 20),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
                     '设备上的唤醒词',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 Text(
                   '${_currentWakeWords.length}/5',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '在下方选择新的唤醒词后点击"设置"按钮',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '在下方选择新的唤醒词后点击"设置"按钮',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
+                ),
                 if (_currentWakeWords.isNotEmpty)
-                  TextButton.icon(
+                  TextButton(
                     onPressed: () {
                       setState(() {
+                        // 将当前设备上的唤醒词加入重选列表
+                        _reselectedWakeWords = List.from(_currentWakeWords);
                         // 清空选择列表，让用户重新选择
                         _selectedPresets.clear();
                         _sendSuccess = false;
+                        // 切换到"现有"分类
+                        _selectedCategory = 'current';
                       });
                     },
-                    icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text(
-                      '重选',
-                      style: TextStyle(fontSize: 12),
-                    ),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      '重选',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -592,19 +719,18 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[200]!),
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                    Icon(Icons.info_outline, color: Colors.grey[500], size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '暂无唤醒词，请在下方选择并设置',
                         style: TextStyle(
-                          color: Colors.orange[700],
+                          color: Colors.grey[600],
                           fontSize: 13,
                         ),
                       ),
@@ -617,11 +743,35 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: _currentWakeWords.map((word) {
-                  return Chip(
-                    label: Text(word.display),
-                    avatar: const Icon(Icons.check_circle, size: 16),
-                    backgroundColor: Colors.green[50],
-                    labelStyle: TextStyle(color: Colors.green[700]),
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.green[200]!),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 14,
+                          color: Colors.green[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          word.display,
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 }).toList(),
               ),
@@ -634,48 +784,98 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
   Widget _buildThresholdCard() {
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.tune, color: Colors.blue[700]),
+                Icon(Icons.tune, color: Colors.grey[800], size: 20),
                 const SizedBox(width: 8),
                 const Text(
-                  '检测阈值',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                Text(
-                  _threshold.toStringAsFixed(2),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                  '唤醒词敏感度',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Slider(
-              value: _threshold,
-              min: 0.05,
-              max: 0.30,
-              divisions: 50,
-              label: _threshold.toStringAsFixed(2),
-              onChanged: (value) {
-                setState(() {
-                  _threshold = value;
-                });
-              },
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSensitivityOption(
+                    Sensitivity.low,
+                    '低',
+                    '不易误触',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSensitivityOption(
+                    Sensitivity.medium,
+                    '中等',
+                    '推荐',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSensitivityOption(
+                    Sensitivity.high,
+                    '高',
+                    '更灵敏',
+                  ),
+                ),
+              ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSensitivityOption(Sensitivity sensitivity, String label, String hint) {
+    final isSelected = _sensitivity == sensitivity;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _sensitivity = sensitivity;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue[50] : Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
             Text(
-              '阈值越小越灵敏，但可能误触发。推荐值：0.10-0.20',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? Colors.blue : Colors.grey[800],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              hint,
+              style: TextStyle(
+                fontSize: 11,
+                color: isSelected ? Colors.blue[700] : Colors.grey[500],
+              ),
             ),
           ],
         ),
@@ -684,25 +884,43 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
   }
 
   Widget _buildCategoryTabs() {
+    // 动态构建分类列表，只有在有重选内容时才显示"现有"分类
+    final categories = presetCategories.entries.where((entry) {
+      // 如果是"现有"分类，只在有重选内容时显示
+      if (entry.key == 'current') {
+        return _reselectedWakeWords.isNotEmpty;
+      }
+      // "自定义"分类不在标签中显示（放在浮动按钮中）
+      return entry.key != 'custom';
+    }).toList();
+    
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ListView(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        children: presetCategories.entries.map((entry) {
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final entry = categories[index];
           final isSelected = _selectedCategory == entry.key;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(entry.value.icon),
-                  const SizedBox(width: 6),
-                  Text(entry.value.name),
-                ],
+              label: Text(
+                entry.value.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isSelected ? Colors.white : Colors.grey[800],
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
               selected: isSelected,
+              selectedColor: Colors.blue,
+              backgroundColor: Colors.grey[100],
+              side: BorderSide(
+                color: isSelected ? Colors.blue : Colors.grey[300]!,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               onSelected: (selected) {
                 setState(() {
                   _selectedCategory = entry.key;
@@ -710,12 +928,32 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
               },
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }
 
   Widget _buildPresetList() {
+    // 如果是"现有"分类，显示重选的唤醒词
+    if (_selectedCategory == 'current') {
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _reselectedWakeWords.length,
+        itemBuilder: (context, index) {
+          final word = _reselectedWakeWords[index];
+          final isSelected = _selectedPresets.contains(word.text);
+          
+          return _buildWakeWordItem(
+            display: word.display,
+            text: word.text,
+            description: '设备上的唤醒词',
+            isSelected: isSelected,
+          );
+        },
+      );
+    }
+    
+    // 其他分类显示预设唤醒词
     final categoryWords = getWakeWordsByCategory(_selectedCategory);
     
     return ListView.builder(
@@ -725,106 +963,119 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         final preset = categoryWords[index];
         final isSelected = _selectedPresets.contains(preset.text);
         
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: isSelected ? 3 : 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: isSelected
-                ? BorderSide(color: Colors.blue[700]!, width: 2)
-                : BorderSide.none,
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              setState(() {
-                if (isSelected) {
-                  // 取消选中
-                  _selectedPresets.remove(preset.text);
-                  _sendSuccess = false;
-                } else {
-                  // 选中前检查数量限制
-                  if (_selectedPresets.length >= 5) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('最多选择 5 个唤醒词'),
-                        backgroundColor: Colors.orange,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    return;
-                  }
-                  _selectedPresets.add(preset.text);
-                  _sendSuccess = false;
-                }
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue[700] : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Icon(
-                      isSelected ? Icons.check : Icons.mic,
-                      color: isSelected ? Colors.white : Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          preset.display,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isSelected 
-                              ? '点击可取消选择'
-                              : (preset.description ?? '点击可选择此唤醒词'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isSelected ? Colors.blue[700] : Colors.grey[600],
-                            fontStyle: isSelected ? FontStyle.italic : FontStyle.normal,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: isSelected ? Colors.blue[700] : Colors.grey[400],
-                    size: 28,
-                  ),
-                ],
-              ),
-            ),
-          ),
+        return _buildWakeWordItem(
+          display: preset.display,
+          text: preset.text,
+          description: preset.description,
+          isSelected: isSelected,
         );
       },
+    );
+  }
+  
+  Widget _buildWakeWordItem({
+    required String display,
+    required String text,
+    String? description,
+    required bool isSelected,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blue[50] : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? Colors.blue : Colors.grey[200]!,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          setState(() {
+            if (isSelected) {
+              // 取消选中
+              _selectedPresets.remove(text);
+              _sendSuccess = false;
+            } else {
+              // 选中前检查数量限制
+              if (_selectedPresets.length >= 5) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('最多选择 5 个唤醒词'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+              _selectedPresets.add(text);
+              _sendSuccess = false;
+            }
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.blue : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected ? Colors.blue : Colors.grey[300]!,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, color: Colors.white, size: 20)
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      display,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                    if (description != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildBottomBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-          boxShadow: [
+        boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
-            offset: const Offset(0, -5),
+            offset: const Offset(0, -2),
           ),
         ],
       ),
@@ -832,31 +1083,19 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '已选择 ${_selectedPresets.length} 个唤醒词',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+            if (_selectedPresets.isNotEmpty) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '已选择 ${_selectedPresets.length} 个唤醒词',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
                       ),
-                      if (_selectedPresets.isNotEmpty)
-                        Text(
-                          '设置后将替换设备上的唤醒词',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange[700],
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
-                ),
-                if (_selectedPresets.isNotEmpty)
                   TextButton(
                     onPressed: () {
                       setState(() {
@@ -864,19 +1103,39 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                         _sendSuccess = false;
                       });
                     },
-                    child: const Text('清空选择'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      '清空',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
+              height: 52,
+              child: ElevatedButton(
                 onPressed: _isSending || _selectedPresets.isEmpty || _sendSuccess
                     ? null
                     : _sendWakeWords,
-                icon: _isSending
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _sendSuccess ? Colors.green : Colors.blue,
+                  disabledBackgroundColor: Colors.grey[300],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: _isSending
                     ? const SizedBox(
                         width: 20,
                         height: 20,
@@ -885,20 +1144,18 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                           color: Colors.white,
                         ),
                       )
-                    : Icon(_sendSuccess ? Icons.check_circle : Icons.send),
-                label: Text(
-                  _isSending 
-                      ? '正在设置...' 
-                      : _sendSuccess 
-                          ? '设置成功 ✓' 
-                          : '设置到设备'
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _sendSuccess ? Colors.green : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+                    : Text(
+                        _isSending 
+                            ? '正在设置...' 
+                            : _sendSuccess 
+                                ? '设置成功' 
+                                : '设置到设备',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ],

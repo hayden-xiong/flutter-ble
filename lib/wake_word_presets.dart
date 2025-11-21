@@ -7,32 +7,32 @@ import 'wake_word_models.dart';
 
 /// 唤醒词分类
 final Map<String, WakeWordCategory> presetCategories = {
-  'xiaozhi': WakeWordCategory(
-    id: 'xiaozhi',
-    name: '小智专属',
-    icon: '🤖',
-  ),
   'general': WakeWordCategory(
     id: 'general',
-    name: '通用助手',
-    icon: '💬',
+    name: '通用',
+    icon: '',
   ),
-  'friendly': WakeWordCategory(
-    id: 'friendly',
-    name: '友好型',
-    icon: '😊',
+  'robot': WakeWordCategory(
+    id: 'robot',
+    name: '手办',
+    icon: '',
   ),
-  'tech': WakeWordCategory(
-    id: 'tech',
-    name: '科技感',
-    icon: '🚀',
+  'custom': WakeWordCategory(
+    id: 'custom',
+    name: '自定义',
+    icon: '',
+  ),
+  'current': WakeWordCategory(
+    id: 'current',
+    name: '现有',
+    icon: '',
   ),
 };
 
 /// 预置唤醒词列表
 final Map<String, PresetWakeWord> presetWakeWords = {
   // ========================================
-  // 小智专属系列
+  // 手办系列
   // ========================================
   'hi plaud': PresetWakeWord(
     text: 'hi plaud',
@@ -44,7 +44,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'HH AY1 P L AA1 D',
       'HH AY P L AA D',
     ],
-    category: 'xiaozhi',
+    category: 'robot',
     description: '官方推荐唤醒词',
   ),
   'hey plaud': PresetWakeWord(
@@ -56,7 +56,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'hey PLaD',
       'HH EY1 P L AA1 D',
     ],
-    category: 'xiaozhi',
+    category: 'robot',
     description: '官方推荐唤醒词',
   ),
 
@@ -119,9 +119,6 @@ final Map<String, PresetWakeWord> presetWakeWords = {
     description: 'Google风格（仅供参考）',
   ),
 
-  // ========================================
-  // 友好型系列
-  // ========================================
   'hi buddy': PresetWakeWord(
     text: 'hi buddy',
     display: 'Hi Buddy',
@@ -130,7 +127,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'HH AY1 B AH1 D IY0',
       'HH AY B AH D IY',
     ],
-    category: 'friendly',
+    category: 'general',
     description: '友好的伙伴',
   ),
   'hey friend': PresetWakeWord(
@@ -141,7 +138,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'HH EY1 F R EH1 N D',
       'HH EY F R EH N D',
     ],
-    category: 'friendly',
+    category: 'general',
     description: '友好的朋友',
   ),
   'hi there': PresetWakeWord(
@@ -152,7 +149,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'HH AY1 DH EH1 R',
       'HH AY DH EH R',
     ],
-    category: 'friendly',
+    category: 'general',
     description: '打招呼',
   ),
   'hello friend': PresetWakeWord(
@@ -163,13 +160,9 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'HH AH0 L OW1 F R EH1 N D',
       'HH AH L OW F R EH N D',
     ],
-    category: 'friendly',
+    category: 'general',
     description: '问候朋友',
   ),
-
-  // ========================================
-  // 科技感系列
-  // ========================================
   'hey jarvis': PresetWakeWord(
     text: 'hey jarvis',
     display: 'Hey Jarvis',
@@ -178,7 +171,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'HH EY1 JH AA1R V IH0 S',
       'HH EY JH AAR V IH S',
     ],
-    category: 'tech',
+    category: 'robot',
     description: '钢铁侠的AI助手',
   ),
   'ok computer': PresetWakeWord(
@@ -189,7 +182,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'OW1 K EY1 K AH0 M P Y UW1 T ER0',
       'OW K EY K AH M P Y UW T ER',
     ],
-    category: 'tech',
+    category: 'robot',
     description: '电脑助手',
   ),
   'hey cortana': PresetWakeWord(
@@ -200,7 +193,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'HH EY1 K AO0 R T AE1 N AH0',
       'HH EY K AO R T AE N AH',
     ],
-    category: 'tech',
+    category: 'robot',
     description: '微软助手风格',
   ),
   'alexa': PresetWakeWord(
@@ -211,7 +204,7 @@ final Map<String, PresetWakeWord> presetWakeWords = {
       'AH0 L EH1 K S AH0',
       'AH L EH K S AH',
     ],
-    category: 'tech',
+    category: 'robot',
     description: 'Amazon助手风格',
   ),
 };
