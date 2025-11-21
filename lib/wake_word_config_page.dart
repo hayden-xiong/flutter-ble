@@ -62,8 +62,10 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         setState(() {
           _currentWakeWords = words;
           _isLoading = false;
-          // 根据设备返回的阈值设置敏感度
-          _sensitivity = _thresholdToSensitivity(threshold);
+          // 如果设备返回了阈值，则根据阈值设置敏感度；否则保持默认值"中等"
+          if (threshold > 0) {
+            _sensitivity = _thresholdToSensitivity(threshold);
+          }
           
           // 不自动选中设备上的唤醒词
           // 用户需要手动选择要配置的唤醒词
@@ -844,9 +846,9 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
               children: [
                 Expanded(
                   child: _buildSensitivityOption(
-                    Sensitivity.low,
-                    '低',
-                    '不易误触',
+                    Sensitivity.high,
+                    '高',
+                    '更灵敏',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -860,9 +862,9 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildSensitivityOption(
-                    Sensitivity.high,
-                    '高',
-                    '更灵敏',
+                    Sensitivity.low,
+                    '低',
+                    '不易误触',
                   ),
                 ),
               ],

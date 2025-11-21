@@ -638,18 +638,28 @@ class BLEWiFiService {
     debugPrint('[BLE WiFi] 发送数据长度: ${data.length} 字节（含结束符）');
     debugPrint('[BLE WiFi] JSON内容: $jsonString');
     
-    // BLE 特征值最大写入限制（保守值）
-    const int maxChunkSize = 240;
-    
-    if (data.length <= maxChunkSize) {
-      // 数据小于限制，直接发送
-      debugPrint('[BLE WiFi] 直接发送: ${data.length} 字节');
-      await _characteristic!.write(data, withoutResponse: false);
-      debugPrint('[BLE WiFi] 数据发送成功');
-    } else {
-      // 数据过大，使用分包发送
-      debugPrint('[BLE WiFi] 数据过大，启用分包传输: ${data.length} 字节');
-      await _sendChunked(data);
+    try {
+      // BLE 特征值最大写入限制（保守值）
+      const int maxChunkSize = 240;
+      
+      if (data.length <= maxChunkSize) {
+        // 数据小于限制，直接发送
+        debugPrint('[BLE WiFi] 直接发送: ${data.length} 字节');
+        await _characteristic!.write(data, withoutResponse: false);
+        debugPrint('[BLE WiFi] 数据发送成功');
+      } else {
+        // 数据过大，使用分包发送
+        debugPrint('[BLE WiFi] 数据过大，启用分包传输: ${data.length} 字节');
+        await _sendChunked(data);
+      }
+    } catch (e) {
+      debugPrint('[BLE WiFi] 发送命令失败: $e');
+      // 检查是否是设备断开连接的错误
+      if (e.toString().contains('disconnected') || e.toString().contains('fbp-code: 6')) {
+        debugPrint('[BLE WiFi] 检测到设备已断开，清理资源');
+        _characteristic = null;
+      }
+      rethrow; // 重新抛出异常，让调用方处理
     }
   }
 
