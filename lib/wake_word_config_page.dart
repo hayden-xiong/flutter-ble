@@ -3,7 +3,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'ble_wifi_service.dart';
 import 'wake_word_models.dart';
 import 'wake_word_presets.dart';
-import 'phonetic_converter.dart';
 
 /// 敏感度枚举
 enum Sensitivity { low, medium, high }
@@ -237,17 +236,17 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
         continue;
       }
       
-      // 从重选列表中查找
-      final reselectedIndex = _reselectedWakeWords.indexWhere((w) => w.text.toUpperCase() == text.toUpperCase());
-      if (reselectedIndex != -1) {
-        words.add(_reselectedWakeWords[reselectedIndex]);
-        continue;
-      }
-      
-      // 从自定义列表中查找
+      // 优先从自定义列表中查找（用户最新添加的）
       final customIndex = _customWakeWords.indexWhere((w) => w.text.toUpperCase() == text.toUpperCase());
       if (customIndex != -1) {
         words.add(_customWakeWords[customIndex]);
+        continue;
+      }
+      
+      // 再从重选列表中查找（设备上的旧数据）
+      final reselectedIndex = _reselectedWakeWords.indexWhere((w) => w.text.toUpperCase() == text.toUpperCase());
+      if (reselectedIndex != -1) {
+        words.add(_reselectedWakeWords[reselectedIndex]);
         continue;
       }
       
@@ -273,9 +272,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
   Future<void> _showCustomWakeWordDialog() async {
     final textController = TextEditingController();
     final phoneticController = TextEditingController();
-    bool isSupported = false;
     bool showAdvanced = false;
-    String? convertedPhonetic;
 
     await showDialog(
       context: context,
@@ -299,55 +296,22 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     controller: textController,
                     decoration: InputDecoration(
                       labelText: '唤醒词',
-                      hintText: '输入您的唤醒词',
+                      hintText: '例如：hi panda',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       prefixIcon: const Icon(Icons.mic),
                     ),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        isSupported = PhoneticConverter.isSupported(value);
-                        convertedPhonetic = PhoneticConverter.convert(value);
-                        if (convertedPhonetic != null) {
-                          phoneticController.text = convertedPhonetic!;
-                        }
-                      });
-                    },
+                    autofocus: true,
                   ),
-                  const SizedBox(height: 12),
-                  
-                  // 自动转换提示（仅在支持时显示）
-                  if (textController.text.isNotEmpty && isSupported)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.green[200]!,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '已自动转换音素',
-                              style: TextStyle(
-                                color: Colors.green[700],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '默认使用空音素，设备会自动识别',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
                     ),
+                  ),
                   
                   // 高级选项展开按钮
                   const SizedBox(height: 16),
@@ -366,7 +330,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '高级选项',
+                          '高级选项（音素自定义）',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[700],
@@ -383,8 +347,8 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     TextField(
                       controller: phoneticController,
                       decoration: InputDecoration(
-                        labelText: '音素字符串',
-                        hintText: '自动生成或手动输入',
+                        labelText: '音素字符串（可选）',
+                        hintText: '留空使用设备自动识别',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -395,13 +359,12 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                           },
                         ),
                       ),
-                      readOnly: isSupported,
                       maxLines: 2,
                       style: const TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '音素是唤醒词的发音表示，通常会自动生成',
+                      '音素是唤醒词的发音表示，留空时由设备自动识别',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey[600],
@@ -421,8 +384,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  final text = textController.text.trim().toUpperCase();
-                  final phonetic = phoneticController.text.trim();
+                  final text = textController.text.trim();
                   
                   if (text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -431,8 +393,10 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     return;
                   }
                   
+                  final textUpper = text.toUpperCase();
+                  
                   // 检查是否已存在
-                  final exists = _customWakeWords.any((w) => w.text.toUpperCase() == text);
+                  final exists = _customWakeWords.any((w) => w.text.toUpperCase() == textUpper);
                   if (exists) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -443,24 +407,24 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     return;
                   }
                   
-                  // 音素不是必填项，如果为空则传空数组
-                  final List<String> phonemesList;
-                  if (phonetic.isEmpty) {
-                    phonemesList = []; // 音素为空时传空数组
-                  } else {
-                    phonemesList = [phonetic.toUpperCase()];
-                  }
+                  // 只有在高级选项展开且音素字段有值时才使用音素
+                  final phonetic = showAdvanced ? phoneticController.text.trim() : '';
+                  final List<String> phonemesList = phonetic.isEmpty ? [] : [phonetic.toUpperCase()];
                   
                   // 创建自定义唤醒词对象
                   final customWord = WakeWord(
-                    text: text,
-                    display: textController.text.trim(), // 保留原始输入作为显示名称
+                    text: textUpper,
+                    display: text, // 保留原始输入作为显示名称
                     phonemes: phonemesList,
                   );
                   
-                  // 添加到自定义列表
+                  debugPrint('[Wake Word] 添加自定义唤醒词: text=$textUpper, display=$text, phonemes=${phonemesList.isEmpty ? "空" : phonemesList}');
+                  
+                  // 添加到自定义列表，并从重选列表中移除同名项（避免冲突）
                   setState(() {
                     _customWakeWords.add(customWord);
+                    // 移除重选列表中的同名项
+                    _reselectedWakeWords.removeWhere((w) => w.text.toUpperCase() == textUpper);
                     _sendSuccess = false;
                   });
                   
