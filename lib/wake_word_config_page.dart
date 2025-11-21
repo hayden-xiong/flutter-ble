@@ -445,7 +445,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  final text = textController.text.trim();
+                  final text = textController.text.trim().toUpperCase();
                   final phonetic = phoneticController.text.trim();
                   
                   if (text.isEmpty) {
@@ -456,7 +456,7 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                   }
                   
                   // 检查是否已存在
-                  final exists = _customWakeWords.any((w) => w.text == text);
+                  final exists = _customWakeWords.any((w) => w.text.toUpperCase() == text);
                   if (exists) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -467,14 +467,19 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
                     return;
                   }
                   
-                  // 音素不是必填项，如果为空则使用文本本身
-                  final finalPhonetic = phonetic.isEmpty ? text : phonetic;
+                  // 音素不是必填项，如果为空则传空数组
+                  final List<String> phonemesList;
+                  if (phonetic.isEmpty) {
+                    phonemesList = []; // 音素为空时传空数组
+                  } else {
+                    phonemesList = [phonetic.toUpperCase()];
+                  }
                   
                   // 创建自定义唤醒词对象
                   final customWord = WakeWord(
                     text: text,
-                    display: text,
-                    phonemes: [finalPhonetic],
+                    display: textController.text.trim(), // 保留原始输入作为显示名称
+                    phonemes: phonemesList,
                   );
                   
                   // 添加到自定义列表
