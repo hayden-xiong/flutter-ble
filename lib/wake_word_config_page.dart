@@ -230,32 +230,33 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
     // 构建唤醒词列表
     final words = <WakeWord>[];
     for (var text in _selectedPresets) {
-      // 先从预置词典中查找
-      final preset = presetWakeWords[text];
+      // 先从预置词典中查找（key是小写）
+      final preset = presetWakeWords[text.toLowerCase()];
       if (preset != null) {
         words.add(preset.toWakeWord());
         continue;
       }
       
       // 从重选列表中查找
-      final reselectedIndex = _reselectedWakeWords.indexWhere((w) => w.text == text);
+      final reselectedIndex = _reselectedWakeWords.indexWhere((w) => w.text.toUpperCase() == text.toUpperCase());
       if (reselectedIndex != -1) {
         words.add(_reselectedWakeWords[reselectedIndex]);
         continue;
       }
       
       // 从自定义列表中查找
-      final customIndex = _customWakeWords.indexWhere((w) => w.text == text);
+      final customIndex = _customWakeWords.indexWhere((w) => w.text.toUpperCase() == text.toUpperCase());
       if (customIndex != -1) {
         words.add(_customWakeWords[customIndex]);
         continue;
       }
       
-      // 如果都找不到，使用文本本身
+      // 如果都找不到，使用空音素
+      debugPrint('[Wake Word] 警告: 未找到唤醒词 "$text" 的定义，使用空音素');
       words.add(WakeWord(
-        text: text,
-        display: text,
-        phonemes: [text],
+        text: text.toUpperCase(),
+        display: text.toLowerCase(),
+        phonemes: [], // 使用空音素而不是文本本身
       ));
     }
     
@@ -267,33 +268,6 @@ class _WakeWordConfigPageState extends State<WakeWordConfigPage> {
       threshold: threshold,
       replace: true,
     );
-  }
-
-  Future<void> _resetWakeWords() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('重置唤醒词'),
-        content: const Text('确定要恢复为默认唤醒词吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('确定', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirm == true) {
-      setState(() {
-        _isSending = true;
-      });
-      await _bleService.resetWakeWords();
-    }
   }
 
   Future<void> _showCustomWakeWordDialog() async {
