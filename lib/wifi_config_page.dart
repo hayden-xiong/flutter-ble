@@ -869,27 +869,60 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text('WiFi 配置'),
+        title: const Text(
+          'WiFi 配置',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
-        bottom: _isInitializing ? null : TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.wifi_find),
-              text: '可用网络',
+        bottom: _isInitializing ? null : PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.grey.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
             ),
-            Tab(
-              icon: Icon(Icons.bookmark),
-              text: '已保存网络',
+            child: TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFF1976D2),
+              unselectedLabelColor: Colors.grey[600],
+              indicatorColor: const Color(0xFF1976D2),
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.wifi_find),
+                  text: '可用网络',
+                ),
+                Tab(
+                  icon: Icon(Icons.bookmark_outline),
+                  text: '已保存网络',
+                ),
+              ],
             ),
-          ],
+          ),
         ),
         actions: [
           if (!_isInitializing)
             IconButton(
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               onPressed: () {
                 if (_tabController.index == 0) {
                   _startWiFiScan();
@@ -906,9 +939,18 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Color(0xFF1976D2),
+                  ),
                   SizedBox(height: 16),
-                  Text('正在初始化 WiFi 配置服务...'),
+                  Text(
+                    '正在初始化 WiFi 配置服务...',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF757575),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -1052,9 +1094,16 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
             return _buildConnectedWiFiBar();
           }
           
-          // WiFi列表
+          // WiFi列表 - 过滤掉已连接的WiFi（避免重复显示）
           final wifiIndex = _connectedSsid != null ? index - 1 : index;
-          return _buildWiFiCard(_wifiList[wifiIndex]);
+          final network = _wifiList[wifiIndex];
+          
+          // 如果这个WiFi已经在顶部显示了，跳过
+          if (_connectedSsid != null && network.ssid == _connectedSsid) {
+            return const SizedBox.shrink(); // 返回空widget
+          }
+          
+          return _buildWiFiCard(network);
         },
       ),
     );
@@ -1108,19 +1157,34 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
       children: [
         // 顶部提示和密码显示切换
         Container(
-          width: double.infinity,
+          margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
-          color: Colors.blue[50],
+          decoration: BoxDecoration(
+            color: const Color(0xFFE3F2FD),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: Color(0xFF1976D2),
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   '已保存 ${_savedList.length} 个 WiFi 配置',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.blue[900],
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1565C0),
                   ),
                 ),
               ),
@@ -1132,12 +1196,23 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                   });
                 },
                 icon: Icon(
-                  _showPasswords ? Icons.visibility_off : Icons.visibility,
+                  _showPasswords ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                   size: 18,
+                  color: const Color(0xFF1976D2),
                 ),
-                label: Text(_showPasswords ? '隐藏密码' : '显示密码'),
+                label: Text(
+                  _showPasswords ? '隐藏' : '显示',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1976D2),
+                  ),
+                ),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ],
@@ -1153,33 +1228,37 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
             },
           ),
         ),
-        // 底部清除按钮
+        // 底部清除按钮（类似参考设计的底部按钮）
         if (_savedList.isNotEmpty)
           SafeArea(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: ElevatedButton.icon(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: ElevatedButton(
                 onPressed: _isLoadingSaved ? null : _showClearAllDialog,
-                icon: const Icon(Icons.delete_forever),
-                label: const Text('清除所有 WiFi 配置'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[600],
+                  backgroundColor: const Color(0xFFEF5350),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  minimumSize: const Size(double.infinity, 56),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.delete_forever_rounded, size: 22),
+                    SizedBox(width: 8),
+                    Text(
+                      '清除所有 WiFi 配置',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1189,71 +1268,100 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
   }
 
   Widget _buildConnectedWiFiBar() {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.green[50],
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // WiFi 图标
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.wifi, color: Colors.green[700], size: 32),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9), // 淡绿色背景
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF4CAF50).withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // WiFi 图标
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            // WiFi 信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _connectedSsid!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+            child: const Icon(Icons.wifi, color: Color(0xFF4CAF50), size: 32),
+          ),
+          const SizedBox(width: 16),
+          // WiFi 信息
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _connectedSsid!,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2E7D32),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if (_connectedIp != null)
-                    Text(
+                    ),
+                    const Icon(Icons.check_circle, size: 20, color: Color(0xFF4CAF50)),
+                  ],
+                ),
+                if (_connectedIp != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
                       'IP: $_connectedIp',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                  ),
                 ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // 断开按钮
+          TextButton(
+            onPressed: _showDisconnectDialog,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            const SizedBox(width: 8),
-            // 断开按钮
-            TextButton(
-              onPressed: _showDisconnectDialog,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                minimumSize: const Size(50, 32),
+            child: const Text(
+              '断开',
+              style: TextStyle(
+                color: Color(0xFFE53935),
+                fontWeight: FontWeight.w600,
               ),
-              child: Text('断开', style: TextStyle(color: Colors.red[700])),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1261,166 +1369,267 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
   Widget _buildWiFiCard(WiFiNetwork network) {
     final isConnected = network.connected;
     
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          // 如果是已连接的WiFi，提示用户
-          if (isConnected) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('已连接到 ${network.ssid}'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-            return;
-          }
-          
-          // 如果当前已连接其他WiFi，询问是否切换
-          if (_connectedSsid != null && _connectedSsid != network.ssid) {
-            _showSwitchWiFiDialog(network);
-            return;
-          }
-          
-          if (network.needsPassword) {
-            _showPasswordDialog(network);
-          } else {
-            // 开放网络，直接连接
-            _configureWiFi(network, '');
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // WiFi 图标
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: isConnected ? Colors.green[50] : Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isConnected ? const Color(0xFF4CAF50).withOpacity(0.3) : Colors.grey.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            // 如果是已连接的WiFi，提示用户
+            if (isConnected) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('已连接到 ${network.ssid}'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: Icon(
-                  Icons.wifi,
-                  size: 32,
-                  color: isConnected ? Colors.green[700] : Colors.blue[700],
+              );
+              return;
+            }
+            
+            // 如果当前已连接其他WiFi，询问是否切换
+            if (_connectedSsid != null && _connectedSsid != network.ssid) {
+              _showSwitchWiFiDialog(network);
+              return;
+            }
+            
+            if (network.needsPassword) {
+              _showPasswordDialog(network);
+            } else {
+              // 开放网络，直接连接
+              _configureWiFi(network, '');
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                // WiFi 图标
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: isConnected ? const Color(0xFFE8F5E9) : const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.wifi,
+                    size: 28,
+                    color: isConnected ? const Color(0xFF4CAF50) : const Color(0xFF757575),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              // WiFi 信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            network.ssid,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                const SizedBox(width: 16),
+                // WiFi 信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              network.ssid,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: isConnected ? const Color(0xFF2E7D32) : const Color(0xFF212121),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        if (isConnected)
-                          Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
-                        if (!isConnected && network.needsPassword)
-                          Icon(Icons.lock, size: 16, color: Colors.grey[600]),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${network.signalDescription} · ${network.authModeDescription} · ${network.rssi} dBm',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                          if (isConnected)
+                            const Icon(Icons.check_circle, size: 20, color: Color(0xFF4CAF50)),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          // 信号强度标签
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getSignalColor(network.signalLevel).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              network.signalDescription,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _getSignalColor(network.signalLevel),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // 加密类型标签
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (network.needsPassword) ...[
+                                  Icon(Icons.lock, size: 10, color: Colors.grey[700]),
+                                  const SizedBox(width: 4),
+                                ],
+                                Text(
+                                  network.authModeDescription,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
-            ],
+                const SizedBox(width: 8),
+                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[300]),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+  
+  Color _getSignalColor(int level) {
+    switch (level) {
+      case 4:
+      case 3:
+        return const Color(0xFF4CAF50); // 绿色
+      case 2:
+        return const Color(0xFFFFA726); // 橙色
+      default:
+        return const Color(0xFFEF5350); // 红色
+    }
+  }
 
   Widget _buildSavedWiFiCard(SavedWiFi wifi) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showReconnectDialog(wifi),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // WiFi 图标
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.grey.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _showReconnectDialog(wifi),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                // 播放/重连图标（类似参考设计）
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.refresh_rounded,
+                    size: 28,
+                    color: Color(0xFF1976D2),
+                  ),
                 ),
-                child: Icon(
-                  Icons.bookmark,
-                  size: 32,
-                  color: Colors.blue[700],
-                ),
-              ),
-              const SizedBox(width: 16),
-              // WiFi 信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      wifi.ssid,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Icon(Icons.lock, size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 6),
-                        Text(
-                          _showPasswords ? wifi.password : '••••••••',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                const SizedBox(width: 16),
+                // WiFi 信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        wifi.ssid,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF212121),
                         ),
-                      ],
-                    ),
-                  ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      // 密码显示（类似参考设计的标签）
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.lock, size: 12, color: Colors.grey[600]),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _showPasswords ? wifi.password : '••••••••',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              // 删除按钮
-              IconButton(
-                icon: Icon(Icons.delete, color: Colors.red[600]),
-                onPressed: _isLoadingSaved ? null : () => _showDeleteDialog(wifi.ssid),
-                tooltip: '删除',
-              ),
-            ],
+                const SizedBox(width: 8),
+                // 删除按钮
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  color: const Color(0xFFEF5350),
+                  onPressed: _isLoadingSaved ? null : () => _showDeleteDialog(wifi.ssid),
+                  tooltip: '删除',
+                  iconSize: 24,
+                ),
+              ],
+            ),
           ),
         ),
       ),
