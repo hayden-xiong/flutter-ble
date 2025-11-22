@@ -965,35 +965,62 @@ class BLEWiFiService {
 
   /// 处理已保存WiFi列表
   void _handleSavedWiFiResult(Map<String, dynamic> json) {
+    // 🔍 调试：打印完整的返回数据
+    debugPrint('[BLE WiFi] 📦 收到已保存WiFi原始数据: $json');
+    
     final status = json['status'] as String;
+    debugPrint('[BLE WiFi] 📊 状态: $status');
     
     if (status != 'success') {
       final message = json['message'] as String? ?? '获取已保存WiFi失败';
-      debugPrint('[BLE WiFi] 获取已保存WiFi失败: $message');
+      debugPrint('[BLE WiFi] ❌ 获取已保存WiFi失败: $message');
       onError?.call(message);
       return;
     }
     
     final data = json['data'] as Map<String, dynamic>?;
+    debugPrint('[BLE WiFi] 📋 data字段: $data');
+    
     if (data == null) {
-      debugPrint('[BLE WiFi] 已保存WiFi结果无数据');
+      debugPrint('[BLE WiFi] ⚠️ 已保存WiFi结果无数据（data为null）');
       onSavedWiFiReceived?.call([]);
       return;
     }
     
     final ssids = data['ssids'] as List<dynamic>?;
+    debugPrint('[BLE WiFi] 📃 ssids列表: $ssids');
+    
     if (ssids == null) {
-      debugPrint('[BLE WiFi] 已保存WiFi结果无列表');
+      debugPrint('[BLE WiFi] ⚠️ 已保存WiFi结果无列表（ssids为null）');
       onSavedWiFiReceived?.call([]);
       return;
     }
     
-    final savedList = ssids
-        .map((item) => SavedWiFi.fromJson(item as Map<String, dynamic>))
-        .toList();
+    if (ssids.isEmpty) {
+      debugPrint('[BLE WiFi] ℹ️ ssids列表为空');
+      onSavedWiFiReceived?.call([]);
+      return;
+    }
     
-    debugPrint('[BLE WiFi] 收到 ${savedList.length} 个已保存WiFi');
-    onSavedWiFiReceived?.call(savedList);
+    try {
+      final savedList = ssids
+          .map((item) {
+            debugPrint('[BLE WiFi] 🔄 解析项: $item');
+            return SavedWiFi.fromJson(item as Map<String, dynamic>);
+          })
+          .toList();
+      
+      debugPrint('[BLE WiFi] ✅ 收到 ${savedList.length} 个已保存WiFi');
+      for (var saved in savedList) {
+        debugPrint('[BLE WiFi]   - ${saved.ssid}: ${saved.password}');
+      }
+      onSavedWiFiReceived?.call(savedList);
+    } catch (e, stackTrace) {
+      debugPrint('[BLE WiFi] ❌ 解析已保存WiFi失败: $e');
+      debugPrint('[BLE WiFi] 堆栈: $stackTrace');
+      onError?.call('解析已保存WiFi失败: $e');
+      onSavedWiFiReceived?.call([]);
+    }
   }
 
   /// 处理删除WiFi结果
