@@ -242,26 +242,26 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
   }
 
   Future<void> _reconnectWiFi(SavedWiFi savedWiFi) async {
-    // 从WiFi列表中找到对应的网络
-    WiFiNetwork? network;
-    for (var wifi in _wifiList) {
-      if (wifi.ssid == savedWiFi.ssid) {
-        network = wifi;
-        break;
-      }
-    }
-    
-    // 如果列表中没有，创建一个临时的网络对象
-    network ??= WiFiNetwork(
+    setState(() {
+      _isConfiguring = true;
+      _errorMessage = null;
+    });
+
+    // 🚀 设备端支持：只需发送 ssid，设备会使用已保存的密码
+    await _wifiService.configureWiFi(
       ssid: savedWiFi.ssid,
-      rssi: -50,
-      channel: 1,
-      authMode: 3, // 假设是 WPA2
-      bssid: '',
+      password: '', // 空密码表示使用设备已保存的密码
     );
-    
-    // 使用保存的密码重新连接
-    await _configureWiFi(network, savedWiFi.password);
+
+    // 设置超时
+    Future.delayed(const Duration(seconds: 40), () {
+      if (mounted && _isConfiguring) {
+        setState(() {
+          _isConfiguring = false;
+        });
+        _showErrorDialog('重连超时，请重试');
+      }
+    });
   }
 
   Future<void> _deleteWiFi(String ssid) async {
@@ -751,12 +751,42 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重新连接'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.wifi, color: Colors.blue[700], size: 24),
+            const SizedBox(width: 12),
+            const Text('快速重连'),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('是否使用保存的密码重新连接到 ${savedWiFi.ssid}？'),
+            Text(
+              '要重新连接到 ${savedWiFi.ssid} 吗？',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 20, color: Colors.green[700]),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      '将使用已保存的密码自动连接',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             if (_connectedSsid != null && _connectedSsid != savedWiFi.ssid) ...[
               const SizedBox(height: 12),
               Container(
@@ -767,11 +797,11 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 20, color: Colors.orange[700]),
+                    Icon(Icons.swap_horiz, size: 20, color: Colors.orange[700]),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '当前已连接到 $_connectedSsid',
+                        '当前已连接到 $_connectedSsid，将切换网络',
                         style: const TextStyle(fontSize: 13),
                       ),
                     ),
@@ -784,13 +814,19 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             child: const Text('取消'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
               _reconnectWiFi(savedWiFi);
             },
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             child: const Text('连接'),
           ),
         ],

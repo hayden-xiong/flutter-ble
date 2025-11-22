@@ -349,8 +349,16 @@ class BLEWiFiService {
       
       final data = <String, dynamic>{
         'ssid': ssid,
-        'password': password,
       };
+      
+      // 🚀 只有当 password 不为空时才发送密码
+      // 空密码表示使用设备已保存的密码（快速重连）
+      if (password.isNotEmpty) {
+        data['password'] = password;
+        debugPrint('[BLE WiFi] 使用新密码配置');
+      } else {
+        debugPrint('[BLE WiFi] 使用已保存的密码重连');
+      }
       
       if (bssid != null && bssid.isNotEmpty) {
         data['bssid'] = bssid;
@@ -361,6 +369,7 @@ class BLEWiFiService {
         'data': data,
       };
       
+      debugPrint('[BLE WiFi] 发送命令: $command');
       await _sendCommand(command);
       return true;
     } catch (e) {
@@ -987,32 +996,39 @@ class BLEWiFiService {
       return;
     }
     
-    final ssids = data['ssids'] as List<dynamic>?;
-    debugPrint('[BLE WiFi] 📃 ssids列表: $ssids');
+    // 🔧 修复：设备返回的字段是 'networks' 而不是 'ssids'
+    final networks = data['networks'] as List<dynamic>?;
+    debugPrint('[BLE WiFi] 📃 networks列表: $networks');
     
-    if (ssids == null) {
-      debugPrint('[BLE WiFi] ⚠️ 已保存WiFi结果无列表（ssids为null）');
+    if (networks == null) {
+      debugPrint('[BLE WiFi] ⚠️ 已保存WiFi结果无列表（networks为null）');
       onSavedWiFiReceived?.call([]);
       return;
     }
     
-    if (ssids.isEmpty) {
-      debugPrint('[BLE WiFi] ℹ️ ssids列表为空');
+    if (networks.isEmpty) {
+      debugPrint('[BLE WiFi] ℹ️ networks列表为空');
       onSavedWiFiReceived?.call([]);
       return;
     }
     
     try {
-      final savedList = ssids
+      final savedList = networks
           .map((item) {
             debugPrint('[BLE WiFi] 🔄 解析项: $item');
-            return SavedWiFi.fromJson(item as Map<String, dynamic>);
+            final networkData = item as Map<String, dynamic>;
+            // 设备返回的数据格式：{ssid: xxx, is_default: xxx, last_connected: xxx}
+            // 转换为 SavedWiFi 需要的格式：{ssid: xxx, password: xxx}
+            return SavedWiFi(
+              ssid: networkData['ssid'] as String? ?? '',
+              password: '********', // 设备不返回密码，显示占位符
+            );
           })
           .toList();
       
       debugPrint('[BLE WiFi] ✅ 收到 ${savedList.length} 个已保存WiFi');
       for (var saved in savedList) {
-        debugPrint('[BLE WiFi]   - ${saved.ssid}: ${saved.password}');
+        debugPrint('[BLE WiFi]   - ${saved.ssid}');
       }
       onSavedWiFiReceived?.call(savedList);
     } catch (e, stackTrace) {
