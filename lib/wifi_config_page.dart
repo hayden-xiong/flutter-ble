@@ -869,35 +869,37 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'WiFi 配置',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 20,
+            color: Color(0xFF212121),
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF212121)),
         bottom: _isInitializing ? null : PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(
                 bottom: BorderSide(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Color(0xFFE0E0E0),
                   width: 1,
                 ),
               ),
             ),
             child: TabBar(
               controller: _tabController,
-              labelColor: const Color(0xFF1976D2),
-              unselectedLabelColor: Colors.grey[600],
-              indicatorColor: const Color(0xFF1976D2),
-              indicatorWeight: 3,
+              labelColor: const Color(0xFF212121),
+              unselectedLabelColor: const Color(0xFF9E9E9E),
+              indicatorColor: const Color(0xFF212121),
+              indicatorWeight: 2,
               labelStyle: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -922,7 +924,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
         actions: [
           if (!_isInitializing)
             IconButton(
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF212121)),
               onPressed: () {
                 if (_tabController.index == 0) {
                   _startWiFiScan();
@@ -941,7 +943,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                 children: [
                   CircularProgressIndicator(
                     strokeWidth: 3,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF212121),
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -1155,12 +1157,12 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
     // WiFi 列表
     return Column(
       children: [
-        // 顶部提示和密码显示切换
+        // 顶部提示和密码显示切换（黑白灰风格）
         Container(
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFE3F2FD),
+            color: const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -1174,7 +1176,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                 child: const Icon(
                   Icons.info_outline,
                   size: 20,
-                  color: Color(0xFF1976D2),
+                  color: Color(0xFF757575),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1184,7 +1186,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1565C0),
+                    color: Color(0xFF212121),
                   ),
                 ),
               ),
@@ -1198,13 +1200,13 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                 icon: Icon(
                   _showPasswords ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                   size: 18,
-                  color: const Color(0xFF1976D2),
+                  color: const Color(0xFF757575),
                 ),
                 label: Text(
                   _showPasswords ? '隐藏' : '显示',
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF757575),
                   ),
                 ),
                 style: TextButton.styleFrom(
@@ -1228,7 +1230,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
             },
           ),
         ),
-        // 底部清除按钮（类似参考设计的底部按钮）
+        // 底部清除按钮（黑色风格，类似参考设计的 Next 按钮）
         if (_savedList.isNotEmpty)
           SafeArea(
             child: Padding(
@@ -1236,7 +1238,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
               child: ElevatedButton(
                 onPressed: _isLoadingSaved ? null : _showClearAllDialog,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF5350),
+                  backgroundColor: const Color(0xFF212121),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   elevation: 0,
@@ -1272,12 +1274,8 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9), // 淡绿色背景
+        color: const Color(0xFFF5F5F5), // 淡灰色背景
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF4CAF50).withOpacity(0.3),
-          width: 1,
-        ),
       ),
       child: Row(
         children: [
@@ -1288,15 +1286,8 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.green.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
-            child: const Icon(Icons.wifi, color: Color(0xFF4CAF50), size: 32),
+            child: const Icon(Icons.wifi, color: Color(0xFF212121), size: 32),
           ),
           const SizedBox(width: 16),
           // WiFi 信息
@@ -1312,30 +1303,23 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2E7D32),
+                          color: Color(0xFF212121),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Icon(Icons.check_circle, size: 20, color: Color(0xFF4CAF50)),
+                    const Icon(Icons.check_circle, size: 20, color: Color(0xFF212121)),
                   ],
                 ),
                 if (_connectedIp != null) ...[
                   const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'IP: $_connectedIp',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
+                  Text(
+                    'IP: $_connectedIp',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF757575),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -1356,7 +1340,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
             child: const Text(
               '断开',
               style: TextStyle(
-                color: Color(0xFFE53935),
+                color: Color(0xFF212121),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1374,17 +1358,6 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isConnected ? const Color(0xFF4CAF50).withOpacity(0.3) : Colors.grey.withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -1399,6 +1372,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                   duration: const Duration(seconds: 2),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: const Color(0xFF212121),
                 ),
               );
               return;
@@ -1426,13 +1400,13 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: isConnected ? const Color(0xFFE8F5E9) : const Color(0xFFF5F5F5),
+                    color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.wifi,
                     size: 28,
-                    color: isConnected ? const Color(0xFF4CAF50) : const Color(0xFF757575),
+                    color: Color(0xFF757575),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1441,94 +1415,73 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              network.ssid,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: isConnected ? const Color(0xFF2E7D32) : const Color(0xFF212121),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isConnected)
-                            const Icon(Icons.check_circle, size: 20, color: Color(0xFF4CAF50)),
-                        ],
+                      Text(
+                        network.ssid,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF212121),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          // 信号强度标签
+                          // 信号强度标签（黑白灰风格）
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: _getSignalColor(network.signalLevel).withOpacity(0.1),
+                              color: const Color(0xFFF5F5F5),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               network.signalDescription,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: _getSignalColor(network.signalLevel),
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF757575),
                               ),
                             ),
                           ),
                           const SizedBox(width: 6),
                           // 加密类型标签
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (network.needsPassword) ...[
-                                  Icon(Icons.lock, size: 10, color: Colors.grey[700]),
+                          if (network.needsPassword)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.lock, size: 10, color: Color(0xFF757575)),
                                   const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  network.authModeDescription,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
+                                  Text(
+                                    network.authModeDescription,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF757575),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[300]),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFE0E0E0)),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-  
-  Color _getSignalColor(int level) {
-    switch (level) {
-      case 4:
-      case 3:
-        return const Color(0xFF4CAF50); // 绿色
-      case 2:
-        return const Color(0xFFFFA726); // 橙色
-      default:
-        return const Color(0xFFEF5350); // 红色
-    }
   }
 
   Widget _buildSavedWiFiCard(SavedWiFi wifi) {
@@ -1537,17 +1490,6 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.grey.withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -1558,18 +1500,18 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
             padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                // 播放/重连图标（类似参考设计）
+                // 播放/重连图标（参考设计风格）
                 Container(
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
+                    color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
                     Icons.refresh_rounded,
                     size: 28,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF757575),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1589,26 +1531,26 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-                      // 密码显示（类似参考设计的标签）
+                      // 密码显示（黑白灰标签）
                       Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.1),
+                              color: const Color(0xFFF5F5F5),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.lock, size: 12, color: Colors.grey[600]),
+                                const Icon(Icons.lock, size: 12, color: Color(0xFF757575)),
                                 const SizedBox(width: 6),
                                 Text(
                                   _showPasswords ? wifi.password : '••••••••',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.grey[700],
+                                    color: Color(0xFF757575),
                                   ),
                                 ),
                               ],
@@ -1623,7 +1565,7 @@ class _WiFiConfigPageState extends State<WiFiConfigPage> with SingleTickerProvid
                 // 删除按钮
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  color: const Color(0xFFEF5350),
+                  color: const Color(0xFF757575),
                   onPressed: _isLoadingSaved ? null : () => _showDeleteDialog(wifi.ssid),
                   tooltip: '删除',
                   iconSize: 24,
